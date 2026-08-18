@@ -110,11 +110,11 @@ def seed():
         print(f"\nLogins (all use password '{DEMO_PASSWORD}'):")
         for u in users:
             facility_name = "City Care Clinic" if u.facility_id == clinic_a.id else "Al-Shifa Clinic"
-            print(f"  {u.email} — {u.role.value} at {facility_name}")
+            print(f"  {u.email} - {u.role.value} at {facility_name}")
         print("\nDemo patients:")
-        print("  Ahmed Raza (CNIC 35202-1234567-1) — severe penicillin allergy")
+        print("  Ahmed Raza (CNIC 35202-1234567-1) - severe penicillin allergy")
         print("  Fatima Sheikh (CNIC 42101-7654321-2)")
-        print("  Usman Tariq (CNIC 35201-9988776-3) — on warfarin; try adding aspirin for him")
+        print("  Usman Tariq (CNIC 35201-9988776-3) - on warfarin; try adding aspirin for him")
         print(f"\n{len(INTERACTIONS)} drug interactions loaded into the reference table.")
     finally:
         db.close()
