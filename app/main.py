@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import allergies, auth, medications, pages, patients, records
+from app.routers import admin, allergies, auth, medications, pages, patients, records
 
 app = FastAPI(title="Vitalis")
 
@@ -14,6 +14,7 @@ app.include_router(patients.router)
 app.include_router(records.router)
 app.include_router(medications.router)
 app.include_router(allergies.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

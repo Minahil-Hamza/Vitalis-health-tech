@@ -58,3 +58,19 @@ button {
   margin: 0.5rem 0 0;
   padding-left: 1.25rem;
 }
+
+/* Non-blocking minor/moderate drug interaction warnings. Yellow, not the reserved red. */
+.interaction-warning-banner {
+  background: #FEF3C7;
+  color: #92400E;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.interaction-warning-banner ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-weight: normal;
+}

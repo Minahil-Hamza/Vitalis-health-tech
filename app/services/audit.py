@@ -14,14 +14,16 @@ def log_action(
     facility_id: Optional[str] = None,
     patient_id: Optional[str] = None,
     ip_address: Optional[str] = None,
+    override_reason: Optional[str] = None,
 ) -> AuditLog:
-    """Insert an append-only audit log row and return it."""
+    """Insert an append-only audit log row and return it. override_reason flags a safety-check override."""
     entry = AuditLog(
         action=action,
         user_id=user_id,
         facility_id=facility_id,
         patient_id=patient_id,
         ip_address=ip_address,
+        override_reason=override_reason,
     )
     db.add(entry)
     db.commit()

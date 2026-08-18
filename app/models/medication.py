@@ -2,7 +2,7 @@
 import uuid
 from datetime import date as date_type
 
-from sqlalchemy import Date, ForeignKey, String
+from sqlalchemy import Date, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -23,3 +23,4 @@ class Medication(Base):
     stopped_at: Mapped[date_type | None] = mapped_column(Date, nullable=True)
     prescribed_by_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     facility_id: Mapped[str] = mapped_column(String(36), ForeignKey("facilities.id"), nullable=False)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

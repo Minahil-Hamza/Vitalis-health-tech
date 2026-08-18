@@ -146,13 +146,66 @@
     severity: document.getElementById("severity").value,
   }));
 
-  bindForm("medication-form", "medication-error", `/patients/${patientId}/medications`, () => ({
-    drug_name: document.getElementById("drug_name").value,
-    brand_name: document.getElementById("brand_name").value || null,
-    dose: document.getElementById("dose").value,
-    frequency: document.getElementById("frequency").value,
-    started_at: document.getElementById("started_at").value,
-  }));
+  document.getElementById("medication-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorEl = document.getElementById("medication-error");
+    errorEl.hidden = true;
+
+    const payload = {
+      drug_name: document.getElementById("drug_name").value,
+      brand_name: document.getElementById("brand_name").value || null,
+      dose: document.getElementById("dose").value,
+      frequency: document.getElementById("frequency").value,
+      started_at: document.getElementById("started_at").value,
+    };
+
+    let res = await fetch(`/patients/${patientId}/medications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.status === 409) {
+      const data = await res.json();
+      const detail = data.detail;
+      let warningText = detail.message;
+      detail.interactions.forEach((i) => {
+        const otherDrug = i.drug_a === payload.drug_name.trim().toLowerCase() ? i.drug_b : i.drug_a;
+        warningText += `\n- ${i.severity.toUpperCase()} interaction with ${otherDrug}: ${i.description}`;
+      });
+      detail.allergy_hits.forEach((substance) => {
+        warningText += `\n- Recorded allergy: ${substance}`;
+      });
+
+      const reason = window.prompt(
+        warningText + "\n\nType a reason to override and save anyway, or cancel to not save:"
+      );
+      if (!reason || !reason.trim()) {
+        errorEl.textContent = "Not saved: an override reason is required.";
+        errorEl.hidden = false;
+        return;
+      }
+
+      payload.override_reason = reason.trim();
+      res = await fetch(`/patients/${patientId}/medications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.warnings && data.warnings.length) {
+        alert("Saved with warnings:\n\n" + data.warnings.join("\n"));
+      }
+      window.location.reload();
+    } else {
+      const data = await res.json();
+      errorEl.textContent = typeof data.detail === "string" ? data.detail : "Please check the form.";
+      errorEl.hidden = false;
+    }
+  });
 
   bindForm("record-form", "record-error", `/patients/${patientId}/records`, () => ({
     record_type: document.getElementById("record_type").value,

@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -35,3 +35,4 @@ class AuditLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

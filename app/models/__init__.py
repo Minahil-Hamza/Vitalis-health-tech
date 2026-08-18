@@ -7,6 +7,7 @@ from app.models.allergy import Allergy, Severity
 from app.models.condition import Condition
 from app.models.medication import Medication
 from app.models.record import Record, RecordType
+from app.models.drug_interaction import DrugInteraction, InteractionSeverity
 
 __all__ = [
     "Facility",
@@ -22,4 +23,6 @@ __all__ = [
     "Medication",
     "Record",
     "RecordType",
+    "DrugInteraction",
+    "InteractionSeverity",
 ]
