@@ -8,6 +8,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.audit_log import AuditAction
 from app.models.user import User
+from app.rate_limit import limiter
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.services.audit import log_action
 from app.services.security import create_access_token, verify_password
@@ -19,6 +20,7 @@ COOKIE_NAME = "access_token"
 
 
 @router.post("/auth/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 def login(credentials: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Verify credentials, return a JWT, set it as a cookie, and audit the attempt."""
     ip_address = request.client.host if request.client else None

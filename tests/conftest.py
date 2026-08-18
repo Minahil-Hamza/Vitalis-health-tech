@@ -9,6 +9,7 @@ from app.database import Base, get_db
 from app.main import app
 from app.models.facility import Facility
 from app.models.user import Role, User
+from app.rate_limit import limiter
 from app.services.security import hash_password
 
 engine = create_engine(
@@ -37,6 +38,18 @@ def _fresh_schema():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset slowapi's shared in-memory counters before each test.
+
+    Without this, the many logins across the whole suite would share one counter (the
+    Limiter and its storage live on the single `app` instance) and start tripping the
+    5/minute login limit partway through an unrelated test.
+    """
+    limiter.reset()
+    yield
 
 
 @pytest.fixture
