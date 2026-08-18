@@ -29,8 +29,18 @@
   - `tests/test_patients.py` (11 tests): create success/invalid-CNIC/duplicate-CNIC/forbidden-for-nurse, search found/not-found, cross-facility view + audit row, consent-denied 403 + no audit row, same-facility access despite no consent, allergy banner shown/hidden, conditions/medications render (stopped meds excluded), records truncated to latest 10
   - Manually verified end-to-end with two seeded facilities via curl: cross-facility search/view, allergy banner rendering, consent 403, and confirmed the exact expected rows landed in the real dev-DB audit log
 
+- Phase 3: Records & medications
+  - `app/services/patient_access.py`: shared `get_patient_or_404`/`has_consent_access` helpers, now reused by the Phase 2 summary route too (small refactor, no behavior change there)
+  - `POST /patients/{id}/records` (audited `created_record`), `GET /patients/{id}/timeline` (all records, newest-first, tagged with facility + author — separate from the summary's latest-10)
+  - `POST /patients/{id}/medications` (audited `added_medication`), `POST /patients/{id}/medications/{id}/stop` (sets `stopped_at` to today; 400 if already stopped)
+  - `POST /patients/{id}/allergies` (no audit row — the spec's `AuditAction` enum has no matching action; flagged and left as-is per your go-ahead)
+  - All four write actions apply the same consent gate as viewing: blocked with 403 if the patient hasn't consented and you're not from the creating facility. No role restriction beyond being logged in (spec didn't specify one for this phase, unlike patient creation).
+  - Add-record/medication/allergy forms are inline on `patient_summary.html` itself (per the spec's "on patient page" wording) with a "Stop" button per active medication; summary page now also shows a "Past medications" section
+  - `tests/test_records.py`, `tests/test_medications.py`, `tests/test_allergies.py` (11 new tests): create + audit row, consent gate blocking all three write actions, stop-medication moving a drug to past (and rejecting a double-stop), timeline showing both facilities' records newest-first
+  - Manually verified end-to-end via curl across two seeded facilities: added allergy/medication/record at Facility A, added a cross-facility record at Facility B, confirmed the timeline shows both newest-first, stopped the medication and confirmed it moved to "Past medications" (and a second stop attempt correctly 400s), then confirmed the real dev-DB audit log had exactly the expected rows (login, added_medication, created_record ×2, viewed_summary ×2 — no rows for the allergy add or the stop)
+
 ## Next
-- Phase 3: Records & medications — add record form, add/stop medication, add allergy with severity, timeline view tagged by facility + author. Waiting for go-ahead.
+- Phase 4: Clinical safety engine — `services/interactions.py` (drug interaction + allergy checks against active medications), blocking warning + override-reason flow on prescription/medication add, admin CSV import for the DrugInteraction reference table. Waiting for go-ahead.
 
 ## Blockers
 - None. Note: port 8000 on this machine is occupied by Docker Desktop/WSL port-forwarding (unrelated to this project) — local dev server testing used port 8001 instead.

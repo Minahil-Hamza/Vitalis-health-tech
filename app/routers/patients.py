@@ -15,6 +15,7 @@ from app.models.record import Record
 from app.models.user import Role, User
 from app.schemas.patient import PatientCreate, PatientOut
 from app.services.audit import log_action
+from app.services.patient_access import get_patient_or_404, has_consent_access
 from app.services.security import get_current_user, require_role
 
 router = APIRouter()
@@ -74,11 +75,9 @@ def patient_summary(
     user: User = Depends(get_current_user),
 ):
     """Render the patient summary: allergy banner, conditions, current medications, latest records."""
-    patient = db.get(Patient, patient_id)
-    if patient is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    patient = get_patient_or_404(db, patient_id)
 
-    if not patient.consent_sharing and user.facility_id != patient.created_by_facility_id:
+    if not has_consent_access(patient, user):
         return templates.TemplateResponse(
             request, "consent_denied.html", {"patient": patient}, status_code=status.HTTP_403_FORBIDDEN
         )
@@ -99,6 +98,12 @@ def patient_summary(
         db.query(Medication)
         .filter(Medication.patient_id == patient.id, Medication.stopped_at.is_(None))
         .order_by(Medication.started_at.desc())
+        .all()
+    )
+    past_medications = (
+        db.query(Medication)
+        .filter(Medication.patient_id == patient.id, Medication.stopped_at.isnot(None))
+        .order_by(Medication.stopped_at.desc())
         .all()
     )
     record_rows = (
@@ -123,6 +128,7 @@ def patient_summary(
             "allergies": allergies,
             "conditions": conditions,
             "active_medications": active_medications,
+            "past_medications": past_medications,
             "records": records,
         },
     )

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Vitalis — {{ patient.full_name }} Timeline{% endblock %}
+{% block content %}
+<main>
+  <h1>{{ patient.full_name }} — Timeline</h1>
+  <p><a href="/patients/{{ patient.id }}">Back to summary</a></p>
+  {% if records %}
+  <ul>
+    {% for entry in records %}
+    <li>
+      <strong>{{ entry.record.record_type.value }}</strong> — {{ entry.record.title }}
+      <br><small>{{ entry.facility_name }} &middot; {{ entry.author_name }} &middot; {{ entry.record.created_at }}</small>
+      <p>{{ entry.record.details }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No records yet.</p>
+  {% endif %}
+</main>
+{% endblock %}

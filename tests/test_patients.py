@@ -198,7 +198,10 @@ def test_conditions_and_medications_render(client: TestClient, seeded_admin, db_
     response = client.get(f"/patients/{patient_id}")
     assert "Type 2 Diabetes" in response.text
     assert "Metformin" in response.text
-    assert "Old Drug" not in response.text  # stopped medications aren't "current"
+    # A stopped medication belongs in "Past medications", not the "Current medications" list.
+    current_section = response.text.split("Current medications")[1].split("Past medications")[0]
+    assert "Old Drug" not in current_section
+    assert "Old Drug" in response.text
 
 
 def test_records_from_all_facilities_limited_to_ten_latest(
