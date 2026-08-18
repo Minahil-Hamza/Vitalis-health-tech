@@ -77,3 +77,41 @@ def seeded_admin(db_session):
     db_session.refresh(admin)
     db_session.refresh(facility)
     return facility, admin, ADMIN_PASSWORD
+
+
+@pytest.fixture
+def second_facility_user(db_session):
+    """A second facility and an active doctor user, for cross-facility tests."""
+    facility = Facility(name="Second Clinic", city="Karachi", address="2 Test Ave", license_number="LIC-2")
+    db_session.add(facility)
+    db_session.flush()
+
+    doctor = User(
+        facility_id=facility.id,
+        full_name="Dr. Second",
+        email="doctor@second-clinic.pk",
+        password_hash=hash_password(ADMIN_PASSWORD),
+        role=Role.DOCTOR,
+    )
+    db_session.add(doctor)
+    db_session.commit()
+    db_session.refresh(doctor)
+    db_session.refresh(facility)
+    return facility, doctor, ADMIN_PASSWORD
+
+
+@pytest.fixture
+def nurse_user(db_session, seeded_admin):
+    """An active nurse user at the same facility as seeded_admin."""
+    facility, _admin, _password = seeded_admin
+    nurse = User(
+        facility_id=facility.id,
+        full_name="Nurse Joy",
+        email="nurse@test-clinic.pk",
+        password_hash=hash_password(ADMIN_PASSWORD),
+        role=Role.NURSE,
+    )
+    db_session.add(nurse)
+    db_session.commit()
+    db_session.refresh(nurse)
+    return nurse

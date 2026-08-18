@@ -5,6 +5,33 @@
   <h1>Welcome, {{ user.full_name }}</h1>
   <p>Role: {{ user.role.value }}</p>
   <p>Facility ID: {{ user.facility_id }}</p>
+
+  <h2>Find a patient</h2>
+  <form id="search-form">
+    <label for="search-cnic">CNIC</label>
+    <input type="text" id="search-cnic" name="cnic" placeholder="12345-1234567-1" required>
+    <button type="submit">Search</button>
+    <p id="search-error" class="form-error" hidden></p>
+  </form>
+  <p><a href="/patients/new">+ Add new patient</a></p>
+
   <a href="/logout">Log out</a>
 </main>
+<script>
+  document.getElementById("search-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const cnic = document.getElementById("search-cnic").value;
+    const errorEl = document.getElementById("search-error");
+    errorEl.hidden = true;
+
+    const res = await fetch(`/patients/search?cnic=${encodeURIComponent(cnic)}`);
+    if (res.ok) {
+      const data = await res.json();
+      window.location.href = `/patients/${data.id}`;
+    } else {
+      errorEl.textContent = "No patient found with that CNIC.";
+      errorEl.hidden = false;
+    }
+  });
+</script>
 {% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Vitalis — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<main>
+  {% if allergies %}
+  <div class="allergy-banner">
+    <strong>Allergy warning:</strong>
+    <ul>
+      {% for allergy in allergies %}
+      <li>{{ allergy.substance }} ({{ allergy.severity.value }})</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <h1>{{ patient.full_name }}</h1>
+  <p>CNIC: {{ patient.cnic }}</p>
+  <p>Date of birth: {{ patient.date_of_birth }}</p>
+  <p>Gender: {{ patient.gender.value }}</p>
+  {% if patient.blood_group %}<p>Blood group: {{ patient.blood_group }}</p>{% endif %}
+
+  <h2>Chronic conditions</h2>
+  {% if conditions %}
+  <ul>
+    {% for condition in conditions %}
+    <li>{{ condition.name }}{% if condition.diagnosed_date %} — diagnosed {{ condition.diagnosed_date }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No chronic conditions recorded.</p>
+  {% endif %}
+
+  <h2>Current medications</h2>
+  {% if active_medications %}
+  <ul>
+    {% for med in active_medications %}
+    <li>{{ med.drug_name }} {{ med.dose }} — {{ med.frequency }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No current medications.</p>
+  {% endif %}
+
+  <h2>Recent records (all facilities)</h2>
+  {% if records %}
+  <ul>
+    {% for entry in records %}
+    <li>
+      <strong>{{ entry.record.record_type.value }}</strong> — {{ entry.record.title }}
+      <br><small>{{ entry.facility_name }} &middot; {{ entry.author_name }} &middot; {{ entry.record.created_at }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No records yet.</p>
+  {% endif %}
+</main>
+{% endblock %}

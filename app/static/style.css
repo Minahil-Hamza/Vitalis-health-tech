@@ -43,3 +43,18 @@ button {
   color: #4A4A4A;
   font-weight: 600;
 }
+
+/* Allergy warnings only. Do not reuse --color-warning for anything else. */
+.allergy-banner {
+  background: var(--color-warning);
+  color: #FFFFFF;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.allergy-banner ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
