@@ -14,6 +14,7 @@
     <p id="search-error" class="form-error" hidden></p>
   </form>
   <p><a href="/patients/new">+ Add new patient</a></p>
+  {% if user.role.value == "admin" %}<p><a href="/admin">Admin dashboard</a></p>{% endif %}
 
   <a href="/logout">Log out</a>
 </main>

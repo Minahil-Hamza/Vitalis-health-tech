@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Vitalis — {{ patient.full_name }} Access History{% endblock %}
+{% block content %}
+<main>
+  <h1>{{ patient.full_name }} — Access History</h1>
+  <p><a href="/patients/{{ patient.id }}">Back to summary</a></p>
+
+  {% if entries %}
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Action</th>
+        <th>Staff</th>
+        <th>Facility</th>
+        <th>Override reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.log.timestamp }}</td>
+        <td>{{ entry.log.action.value }}</td>
+        <td>{{ entry.user_name or "—" }}</td>
+        <td>{{ entry.facility_name or "—" }}</td>
+        <td>{{ entry.log.override_reason or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p>No access history yet.</p>
+  {% endif %}
+
+  <p>
+    {% if page > 1 %}<a href="/patients/{{ patient.id }}/access-history?page={{ page - 1 }}">&laquo; Previous</a>{% endif %}
+    Page {{ page }} of {{ total_pages }}
+    {% if page < total_pages %}<a href="/patients/{{ patient.id }}/access-history?page={{ page + 1 }}">Next &raquo;</a>{% endif %}
+  </p>
+</main>
+{% endblock %}

@@ -1,4 +1,6 @@
-"""Patient creation, CNIC search, and the cross-facility patient summary page."""
+"""Patient creation, CNIC search, the cross-facility patient summary page, and access history."""
+from math import ceil
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -6,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.allergy import Allergy
-from app.models.audit_log import AuditAction
+from app.models.audit_log import AuditAction, AuditLog
 from app.models.condition import Condition
 from app.models.facility import Facility
 from app.models.medication import Medication
@@ -22,6 +24,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 CREATE_PATIENT_ROLES = [Role.ADMIN, Role.DOCTOR, Role.PHARMACIST, Role.RECEPTIONIST]
+ACCESS_HISTORY_PAGE_SIZE = 20
 
 
 @router.get("/patients/new", response_class=HTMLResponse)
@@ -130,5 +133,49 @@ def patient_summary(
             "active_medications": active_medications,
             "past_medications": past_medications,
             "records": records,
+            "is_creating_facility": user.facility_id == patient.created_by_facility_id,
         },
+    )
+
+
+@router.get("/patients/{patient_id}/access-history", response_class=HTMLResponse)
+def patient_access_history(
+    patient_id: str,
+    request: Request,
+    page: int = 1,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Show who has viewed or edited this patient's record. Visible only to staff at the creating facility."""
+    patient = get_patient_or_404(db, patient_id)
+
+    if user.facility_id != patient.created_by_facility_id:
+        return templates.TemplateResponse(
+            request, "access_history_restricted.html", {"patient": patient}, status_code=status.HTTP_403_FORBIDDEN
+        )
+
+    page = max(page, 1)
+    total = db.query(AuditLog).filter(AuditLog.patient_id == patient.id).count()
+    total_pages = max(ceil(total / ACCESS_HISTORY_PAGE_SIZE), 1)
+    page = min(page, total_pages)
+
+    rows = (
+        db.query(AuditLog, User.full_name, Facility.name)
+        .outerjoin(User, AuditLog.user_id == User.id)
+        .outerjoin(Facility, AuditLog.facility_id == Facility.id)
+        .filter(AuditLog.patient_id == patient.id)
+        .order_by(AuditLog.timestamp.desc())
+        .offset((page - 1) * ACCESS_HISTORY_PAGE_SIZE)
+        .limit(ACCESS_HISTORY_PAGE_SIZE)
+        .all()
+    )
+    entries = [
+        {"log": log, "user_name": staff_name, "facility_name": facility_name}
+        for log, staff_name, facility_name in rows
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "patient_access_history.html",
+        {"patient": patient, "entries": entries, "page": page, "total_pages": total_pages},
     )

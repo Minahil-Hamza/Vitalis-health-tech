@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Vitalis — Admin{% endblock %}
+{% block content %}
+<main>
+  <h1>Admin dashboard</h1>
+  <p><a href="/">Back to dashboard</a></p>
+
+  <h2>This month</h2>
+  <p>Patients created: {{ patients_created }}</p>
+  <p>Records this month: {{ records_this_month }}</p>
+
+  <h2>Staff</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for member in staff %}
+      <tr>
+        <td>{{ member.full_name }}</td>
+        <td>{{ member.email }}</td>
+        <td>{{ member.role.value }}</td>
+        <td>{{ "Active" if member.is_active else "Deactivated" }}</td>
+        <td>
+          {% if member.is_active and member.id != current_user_id %}
+          <button type="button" class="deactivate-btn" data-user-id="{{ member.id }}">Deactivate</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Add staff</h3>
+  <form id="add-staff-form">
+    <label for="full_name">Full name</label>
+    <input type="text" id="full_name" name="full_name" required>
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required>
+    <label for="role">Role</label>
+    <select id="role" name="role" required>
+      <option value="doctor">Doctor</option>
+      <option value="pharmacist">Pharmacist</option>
+      <option value="nurse">Nurse</option>
+      <option value="receptionist">Receptionist</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button type="submit">Add staff</button>
+    <p class="form-error" id="add-staff-error" hidden></p>
+  </form>
+</main>
+<script>
+  document.getElementById("add-staff-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorEl = document.getElementById("add-staff-error");
+    errorEl.hidden = true;
+
+    const payload = {
+      full_name: document.getElementById("full_name").value,
+      email: document.getElementById("email").value,
+      password: document.getElementById("password").value,
+      role: document.getElementById("role").value,
+    };
+
+    const res = await fetch("/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const data = await res.json();
+      errorEl.textContent = typeof data.detail === "string" ? data.detail : "Please check the form.";
+      errorEl.hidden = false;
+    }
+  });
+
+  document.querySelectorAll(".deactivate-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const userId = btn.dataset.userId;
+      const res = await fetch(`/admin/users/${userId}/deactivate`, { method: "POST" });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("Could not deactivate that user.");
+      }
+    });
+  });
+</script>
+{% endblock %}

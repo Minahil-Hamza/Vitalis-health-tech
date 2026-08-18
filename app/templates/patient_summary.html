@@ -18,6 +18,7 @@
   <p>Date of birth: {{ patient.date_of_birth }}</p>
   <p>Gender: {{ patient.gender.value }}</p>
   {% if patient.blood_group %}<p>Blood group: {{ patient.blood_group }}</p>{% endif %}
+  {% if is_creating_facility %}<p><a href="/patients/{{ patient.id }}/access-history">View access history</a></p>{% endif %}
 
   <h2>Allergies</h2>
   <form id="allergy-form">
