@@ -11,3 +11,35 @@ body {
   margin: 0;
   padding: 0;
 }
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input, button {
+  font-size: 1rem;
+  padding: 0.5rem;
+}
+
+button {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+/* Generic form/validation errors — NOT the clinical allergy/interaction warning color. */
+.form-error {
+  color: #4A4A4A;
+  font-weight: 600;
+}

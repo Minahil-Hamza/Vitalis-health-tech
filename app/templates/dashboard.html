@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Vitalis — Dashboard{% endblock %}
+{% block content %}
+<main>
+  <h1>Welcome, {{ user.full_name }}</h1>
+  <p>Role: {{ user.role.value }}</p>
+  <p>Facility ID: {{ user.facility_id }}</p>
+  <a href="/logout">Log out</a>
+</main>
+{% endblock %}
