@@ -2,7 +2,7 @@
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -15,9 +15,11 @@ from app.models.medication import Medication
 from app.models.patient import Patient
 from app.models.record import Record
 from app.models.user import Role, User
-from app.schemas.patient import PatientCreate, PatientOut
+from app.schemas.access_history import AccessHistoryEntryOut, AccessHistoryPageOut
+from app.schemas.patient import PatientCreate, PatientDetailOut, PatientOut, RecordDetailOut
 from app.services.audit import log_action
-from app.services.patient_access import get_patient_or_404, has_consent_access
+from app.services.content_negotiation import wants_json
+from app.services.patient_access import CONSENT_DENIED_DETAIL, get_patient_or_404, has_consent_access
 from app.services.security import get_current_user, require_role
 
 router = APIRouter()
@@ -25,6 +27,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 CREATE_PATIENT_ROLES = [Role.ADMIN, Role.DOCTOR, Role.PHARMACIST, Role.RECEPTIONIST]
 ACCESS_HISTORY_PAGE_SIZE = 20
+ACCESS_HISTORY_RESTRICTED_DETAIL = "This patient's access history is only visible to staff at the creating facility"
 
 
 @router.get("/patients/new", response_class=HTMLResponse)
@@ -77,10 +80,16 @@ def patient_summary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Render the patient summary: allergy banner, conditions, current medications, latest records."""
+    """Render the patient summary: allergy banner, conditions, current medications, latest records.
+
+    Returns JSON instead of HTML when the caller's Accept header prefers application/json
+    (the future React app); existing HTML callers are unaffected.
+    """
     patient = get_patient_or_404(db, patient_id)
 
     if not has_consent_access(patient, user):
+        if wants_json(request):
+            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": CONSENT_DENIED_DETAIL})
         return templates.TemplateResponse(
             request, "consent_denied.html", {"patient": patient}, status_code=status.HTTP_403_FORBIDDEN
         )
@@ -118,11 +127,45 @@ def patient_summary(
         .limit(10)
         .all()
     )
+    is_creating_facility = user.facility_id == patient.created_by_facility_id
+
+    if wants_json(request):
+        detail = PatientDetailOut(
+            id=patient.id,
+            cnic=patient.cnic,
+            full_name=patient.full_name,
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender,
+            blood_group=patient.blood_group,
+            phone=patient.phone,
+            address=patient.address,
+            consent_sharing=patient.consent_sharing,
+            created_by_facility_id=patient.created_by_facility_id,
+            created_at=patient.created_at,
+            is_creating_facility=is_creating_facility,
+            allergies=allergies,
+            conditions=conditions,
+            active_medications=active_medications,
+            past_medications=past_medications,
+            records=[
+                RecordDetailOut(
+                    id=record.id,
+                    record_type=record.record_type,
+                    title=record.title,
+                    details=record.details,
+                    created_at=record.created_at,
+                    facility_name=facility_name,
+                    author_name=author_name,
+                )
+                for record, facility_name, author_name in record_rows
+            ],
+        )
+        return JSONResponse(content=detail.model_dump(mode="json"))
+
     records = [
         {"record": record, "facility_name": facility_name, "author_name": author_name}
         for record, facility_name, author_name in record_rows
     ]
-
     return templates.TemplateResponse(
         request,
         "patient_summary.html",
@@ -133,7 +176,7 @@ def patient_summary(
             "active_medications": active_medications,
             "past_medications": past_medications,
             "records": records,
-            "is_creating_facility": user.facility_id == patient.created_by_facility_id,
+            "is_creating_facility": is_creating_facility,
         },
     )
 
@@ -150,6 +193,10 @@ def patient_access_history(
     patient = get_patient_or_404(db, patient_id)
 
     if user.facility_id != patient.created_by_facility_id:
+        if wants_json(request):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN, content={"detail": ACCESS_HISTORY_RESTRICTED_DETAIL}
+            )
         return templates.TemplateResponse(
             request, "access_history_restricted.html", {"patient": patient}, status_code=status.HTTP_403_FORBIDDEN
         )
@@ -169,11 +216,29 @@ def patient_access_history(
         .limit(ACCESS_HISTORY_PAGE_SIZE)
         .all()
     )
+
+    if wants_json(request):
+        page_out = AccessHistoryPageOut(
+            entries=[
+                AccessHistoryEntryOut(
+                    id=log.id,
+                    action=log.action,
+                    timestamp=log.timestamp,
+                    user_name=staff_name,
+                    facility_name=facility_name,
+                    override_reason=log.override_reason,
+                )
+                for log, staff_name, facility_name in rows
+            ],
+            page=page,
+            total_pages=total_pages,
+        )
+        return JSONResponse(content=page_out.model_dump(mode="json"))
+
     entries = [
         {"log": log, "user_name": staff_name, "facility_name": facility_name}
         for log, staff_name, facility_name in rows
     ]
-
     return templates.TemplateResponse(
         request,
         "patient_access_history.html",

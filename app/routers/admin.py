@@ -4,7 +4,7 @@ import io
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,9 @@ from app.models.drug_interaction import DrugInteraction, InteractionSeverity
 from app.models.patient import Patient
 from app.models.record import Record
 from app.models.user import Role, User
+from app.schemas.admin import AdminDashboardOut
 from app.schemas.user import UserCreate, UserOut
+from app.services.content_negotiation import wants_json
 from app.services.security import hash_password, require_role
 
 router = APIRouter()
@@ -40,6 +42,15 @@ def admin_dashboard(
         .filter(Record.facility_id == user.facility_id, Record.created_at >= month_start)
         .count()
     )
+
+    if wants_json(request):
+        dashboard = AdminDashboardOut(
+            staff=staff,
+            patients_created=patients_created,
+            records_this_month=records_this_month,
+            current_user_id=user.id,
+        )
+        return JSONResponse(content=dashboard.model_dump(mode="json"))
 
     return templates.TemplateResponse(
         request,

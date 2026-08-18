@@ -13,12 +13,10 @@ from app.schemas.medication import MedicationCreate, MedicationCreateResponse, M
 from app.schemas.safety import InteractionWarning, SafetyBlockedDetail
 from app.services.audit import log_action
 from app.services.interactions import check_allergy, check_interactions
-from app.services.patient_access import get_patient_or_404, has_consent_access
+from app.services.patient_access import CONSENT_DENIED_DETAIL, get_patient_or_404, has_consent_access
 from app.services.security import get_current_user
 
 router = APIRouter()
-
-CONSENT_DENIED_DETAIL = "This patient has not consented to sharing with your facility"
 
 
 @router.post(

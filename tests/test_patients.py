@@ -235,3 +235,72 @@ def test_records_from_all_facilities_limited_to_ten_latest(
     assert "Visit 11\n" in response.text  # newest should be present
     assert "Visit 0\n" not in response.text  # oldest two should be truncated
     assert "Visit 1\n" not in response.text
+
+
+def test_patient_summary_json_matches_page_data(client: TestClient, seeded_admin, db_session):
+    """GET /patients/{id} with Accept: application/json returns the same data as the HTML page."""
+    facility, admin, password = seeded_admin
+    _login(client, admin.email, password)
+
+    created = client.post("/patients", json=dict(VALID_PATIENT, cnic="88888-1888888-8"))
+    patient_id = created.json()["id"]
+
+    db_session.add(Allergy(patient_id=patient_id, substance="Penicillin", severity=Severity.SEVERE))
+    db_session.add(Condition(patient_id=patient_id, name="Asthma", diagnosed_date=date(2018, 5, 1)))
+    db_session.add(
+        Medication(
+            patient_id=patient_id, drug_name="Salbutamol", dose="100mcg", frequency="as needed",
+            started_at=date(2022, 1, 1), facility_id=facility.id,
+        )
+    )
+    db_session.commit()
+
+    response = client.get(f"/patients/{patient_id}", headers={"Accept": "application/json"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cnic"] == "88888-1888888-8"
+    assert body["is_creating_facility"] is True
+    assert len(body["allergies"]) == 1 and body["allergies"][0]["substance"] == "Penicillin"
+    assert len(body["conditions"]) == 1 and body["conditions"][0]["name"] == "Asthma"
+    assert len(body["active_medications"]) == 1
+    assert body["active_medications"][0]["drug_name"] == "Salbutamol"
+    assert body["past_medications"] == []
+    assert body["records"] == []
+
+    # The plain HTML request (no Accept header) still works exactly as before.
+    html_response = client.get(f"/patients/{patient_id}")
+    assert html_response.status_code == 200
+    assert "text/html" in html_response.headers["content-type"]
+
+
+def test_patient_summary_json_writes_one_audit_row(client: TestClient, seeded_admin, db_session):
+    """The JSON branch writes the same single viewed_summary audit row as the HTML branch."""
+    _facility, admin, password = seeded_admin
+    _login(client, admin.email, password)
+
+    created = client.post("/patients", json=dict(VALID_PATIENT, cnic="99999-1999999-9"))
+    patient_id = created.json()["id"]
+
+    client.get(f"/patients/{patient_id}", headers={"Accept": "application/json"})
+
+    logs = db_session.query(AuditLog).filter(AuditLog.action == AuditAction.VIEWED_SUMMARY).all()
+    assert len(logs) == 1
+
+
+def test_patient_summary_json_403_when_consent_denied(client: TestClient, seeded_admin, second_facility_user):
+    """Consent-denied returns a JSON 403 with a detail message instead of the HTML consent page."""
+    _facility_a, admin, password = seeded_admin
+    _facility_b, doctor, doctor_password = second_facility_user
+
+    _login(client, admin.email, password)
+    no_consent_payload = dict(VALID_PATIENT, cnic="66666-1666666-6", consent_sharing=False)
+    created = client.post("/patients", json=no_consent_payload)
+    patient_id = created.json()["id"]
+
+    client_b = TestClient(app)
+    _login(client_b, doctor.email, doctor_password)
+
+    response = client_b.get(f"/patients/{patient_id}", headers={"Accept": "application/json"})
+    assert response.status_code == 403
+    assert "consent" in response.json()["detail"].lower()

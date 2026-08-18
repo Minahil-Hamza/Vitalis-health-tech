@@ -106,3 +106,32 @@ def test_access_history_paginates(client: TestClient, seeded_admin, db_session):
     assert "Page 2 of 2" in page2.text
     assert "Previous" in page2.text
     assert "Next" not in page2.text
+
+    json_page1 = client.get(
+        f"/patients/{patient_id}/access-history", headers={"Accept": "application/json"}
+    )
+    assert json_page1.status_code == 200
+    body = json_page1.json()
+    assert body["page"] == 1
+    assert body["total_pages"] == 2
+    assert len(body["entries"]) == 20
+    assert body["entries"][0]["action"] == "viewed_summary"
+    assert body["entries"][0]["user_name"] == admin.full_name
+    assert body["entries"][0]["facility_name"] == facility.name
+
+
+def test_access_history_json_403_for_other_facility(client: TestClient, seeded_admin, second_facility_user):
+    _facility_a, admin, password = seeded_admin
+    _facility_b, doctor, doctor_password = second_facility_user
+
+    _login(client, admin.email, password)
+    patient_id = _create_patient(client)
+
+    client_b = TestClient(app)
+    _login(client_b, doctor.email, doctor_password)
+
+    response = client_b.get(
+        f"/patients/{patient_id}/access-history", headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 403
+    assert "creating facility" in response.json()["detail"].lower()

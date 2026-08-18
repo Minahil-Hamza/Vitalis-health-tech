@@ -106,3 +106,26 @@ def test_timeline_shows_records_from_all_facilities_newest_first(
     assert "Blood test at Clinic B" in timeline.text
     # newest first: the Clinic B record was created second, so it should appear before Clinic A's
     assert timeline.text.index("Blood test at Clinic B") < timeline.text.index("First visit at Clinic A")
+
+    json_timeline = client.get(f"/patients/{patient_id}/timeline", headers={"Accept": "application/json"})
+    assert json_timeline.status_code == 200
+    titles = [entry["title"] for entry in json_timeline.json()]
+    assert titles == ["Blood test at Clinic B", "First visit at Clinic A"]
+    assert json_timeline.json()[0]["facility_name"] == _facility_b.name
+    assert json_timeline.json()[0]["author_name"] == doctor.full_name
+
+
+def test_timeline_json_403_when_consent_denied(client: TestClient, seeded_admin, second_facility_user):
+    _facility_a, admin, password = seeded_admin
+    _facility_b, doctor, doctor_password = second_facility_user
+
+    _login(client, admin.email, password)
+    response = client.post("/patients", json=dict(VALID_PATIENT, cnic="55555-5555555-5", consent_sharing=False))
+    patient_id = response.json()["id"]
+
+    client_b = TestClient(app)
+    _login(client_b, doctor.email, doctor_password)
+
+    denied = client_b.get(f"/patients/{patient_id}/timeline", headers={"Accept": "application/json"})
+    assert denied.status_code == 403
+    assert "consent" in denied.json()["detail"].lower()

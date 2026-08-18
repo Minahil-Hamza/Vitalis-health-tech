@@ -65,8 +65,49 @@
   - `tests/test_rate_limit.py`, `tests/test_error_pages.py` (8 new tests): 6th login attempt in a minute returns 429, HTML vs. JSON for 404/403/500 depending on the `Accept` header
   - **Verified the "fresh clone → under 10 minutes" acceptance criterion for real**: cloned the repo into a scratch directory and followed the README's own instructions end-to-end (venv, install, migrate, seed, run, log in, search a demo patient, and reproduce the aspirin/warfarin block). Total time ~4–5 minutes (venv 59s, `pip install` 177s, migrate+seed 20s). Found and fixed one real bug this way: `seed_demo.py`'s em-dash characters rendered as mojibake in a default Windows console codepage — replaced with plain hyphens.
 
-## Next
-- **Future phase (decided 2026-08-19, not yet planned in detail): full 3D UI rewrite.** Founder wants a "full 3D immersive" patient-centric web app, to happen *after* Phases 5–6 are done on the current stack. This is a deliberate departure from `VITALIS_SPEC.md`'s fixed tech stack (Jinja2 + vanilla JS + one CSS file, "NO React/Vue in v1") — will need React/Vue + a 3D library (Three.js/WebGL), which also means re-checking the spec's "every page usable on a phone" requirement against 3D rendering performance. When we get here: amend `VITALIS_SPEC.md`'s tech-stack section explicitly (don't just start coding against it), then present a proper plan before writing any code, same as every other phase.
+## 3D UI rewrite (post-Phase-6 initiative, tracked outside the VITALIS_SPEC.md phase list)
+
+Decided 2026-08-19: founder wants a full 3D immersive, patient-centric rewrite — a React
+frontend with a 3D patient body/avatar visualization (chronic conditions shown as spatial
+markers on the body; allergies/medications/records in a conventional side panel, since
+they don't have a real anatomical location). This is a full frontend rewrite: the FastAPI
+backend becomes a pure JSON API, React replaces Jinja2/vanilla JS entirely. Rolling out in
+parallel with the current app (nothing breaks until cutover) via this sub-roadmap:
+
+- **Phase 7 — Backend JSON API readiness (DONE, this entry)**
+  - `app/services/content_negotiation.py`: `wants_json(request)`, the JSON-side
+    counterpart to Phase 6's HTML-error-page negotiation
+  - `GET /auth/me` (new endpoint — the one thing genuinely missing, not duplicated):
+    returns the logged-in user's profile including `facility_name`
+  - Made four existing page routes content-negotiate on the same URL — JSON if
+    `Accept: application/json`, otherwise the exact same HTML as before (fully
+    backward-compatible; nothing today sends that header, so zero behavior change for
+    existing callers): `GET /patients/{id}` (full summary), `GET
+    /patients/{id}/timeline`, `GET /patients/{id}/access-history`, `GET /admin`. `GET
+    /logout` similarly returns a JSON confirmation instead of a redirect when asked.
+  - New schemas: `UserMeOut`, `ConditionOut`, `RecordDetailOut`, `PatientDetailOut`,
+    `MedicationDetailOut`, `AdminDashboardOut`, `AccessHistoryEntryOut`/`PageOut`
+  - Centralized the "not consented" message (`CONSENT_DENIED_DETAIL`), previously
+    duplicated as a string constant in three router files, into `patient_access.py`
+  - `tests/test_auth.py`, `test_patients.py`, `test_records.py`, `test_access_history.py`,
+    `test_admin_dashboard.py` (12 new tests): JSON shape matches HTML page's data, same
+    audit-writing/consent-gate behavior in both modes, HTML mode unaffected
+  - Manually verified against the real dev server: `/auth/me`, JSON patient detail
+    (allergies/conditions/medications), JSON timeline, JSON access-history, JSON admin
+    dashboard, and JSON logout (with a real cookie-jar round-trip confirming the cookie
+    actually clears) — all while confirming the old HTML pages still render identically
+  - No new libraries, no migration — pure response-shaping on existing data
+- **Phase 8 — React app shell (2D)**: not started. Scaffold `frontend/` (Vite + plain JS
+  + React, no TypeScript by default), recreate login/dashboard/patient
+  search-create-summary/admin/timeline/access-history as React components calling the
+  Phase 7 JSON endpoints. Functional parity with the current app before any 3D work.
+- **Phase 9 — 3D patient visualization**: not started. react-three-fiber + Three.js; body
+  model sourcing and the condition-to-body-region mapping (leaning toward a manual
+  "body region" field on Condition rather than guessing from free text) still need
+  deciding.
+- **Phase 10 — Polish, mobile, cutover**: not started. Phone performance testing (a WebGL
+  scene is a real risk on low-end phones), README/deploy updates for the Node build step,
+  retire the Jinja2 templates only once parity is confirmed.
 
 ## Blockers
 - None. Note: port 8000 on this machine is occupied by Docker Desktop/WSL port-forwarding (unrelated to this project) — local dev server testing used port 8001 instead.

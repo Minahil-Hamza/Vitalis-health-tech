@@ -23,3 +23,14 @@ class UserOut(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class UserMeOut(BaseModel):
+    """The logged-in user's own profile, returned by GET /auth/me."""
+
+    id: str
+    full_name: str
+    email: str
+    role: Role
+    facility_id: str
+    facility_name: str

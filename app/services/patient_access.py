@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.models.patient import Patient
 from app.models.user import User
 
+CONSENT_DENIED_DETAIL = "This patient has not consented to sharing with your facility"
+
 
 def get_patient_or_404(db: Session, patient_id: str) -> Patient:
     """Load a patient by id, raising 404 if not found."""

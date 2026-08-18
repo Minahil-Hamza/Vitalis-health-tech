@@ -118,3 +118,19 @@ def test_dashboard_counts(client: TestClient, seeded_admin, db_session):
     assert response.status_code == 200
     assert "Patients created: 1" in response.text
     assert "Records this month: 1" in response.text
+
+    json_response = client.get("/admin", headers={"Accept": "application/json"})
+    assert json_response.status_code == 200
+    body = json_response.json()
+    assert body["patients_created"] == 1
+    assert body["records_this_month"] == 1
+    assert body["current_user_id"] == admin.id
+    assert any(member["email"] == admin.email for member in body["staff"])
+
+
+def test_admin_dashboard_json_forbidden_for_non_admin(client: TestClient, nurse_user):
+    _login(client, nurse_user.email, ADMIN_PASSWORD)
+
+    response = client.get("/admin", headers={"Accept": "application/json"})
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Not permitted for this role"}

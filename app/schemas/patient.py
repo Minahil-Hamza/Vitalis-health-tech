@@ -1,11 +1,14 @@
 """Pydantic schemas for patient endpoints."""
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
 from app.models.patient import Gender
+from app.models.record import RecordType
+from app.schemas.allergy import AllergyOut
+from app.schemas.medication import MedicationDetailOut
 
 CNIC_PATTERN = re.compile(r"^\d{5}-\d{7}-\d$")
 
@@ -39,3 +42,48 @@ class PatientOut(BaseModel):
     full_name: str
 
     model_config = {"from_attributes": True}
+
+
+class ConditionOut(BaseModel):
+    """A chronic condition, as returned in the patient detail JSON."""
+
+    id: str
+    name: str
+    diagnosed_date: Optional[date] = None
+    notes: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class RecordDetailOut(BaseModel):
+    """A clinical record, tagged with the facility and author it belongs to."""
+
+    id: str
+    record_type: RecordType
+    title: str
+    details: str
+    created_at: datetime
+    facility_name: str
+    author_name: str
+
+
+class PatientDetailOut(BaseModel):
+    """The full patient summary: demographics plus allergies, conditions, medications, and records."""
+
+    id: str
+    cnic: str
+    full_name: str
+    date_of_birth: date
+    gender: Gender
+    blood_group: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    consent_sharing: bool
+    created_by_facility_id: str
+    created_at: datetime
+    is_creating_facility: bool
+    allergies: list[AllergyOut]
+    conditions: list[ConditionOut]
+    active_medications: list[MedicationDetailOut]
+    past_medications: list[MedicationDetailOut]
+    records: list[RecordDetailOut]

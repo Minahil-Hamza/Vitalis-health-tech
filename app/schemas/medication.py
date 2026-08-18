@@ -31,3 +31,17 @@ class MedicationCreateResponse(MedicationOut):
     """Fields returned after adding a medication, including any non-blocking safety warnings."""
 
     warnings: list[str] = []
+
+
+class MedicationDetailOut(BaseModel):
+    """Full medication fields, as shown on the patient detail page."""
+
+    id: str
+    drug_name: str
+    brand_name: Optional[str] = None
+    dose: str
+    frequency: str
+    started_at: date
+    stopped_at: Optional[date] = None
+
+    model_config = {"from_attributes": True}

@@ -78,3 +78,51 @@ def test_require_role_blocks_other_roles():
     with pytest.raises(HTTPException) as exc_info:
         checker(user=fake_user)
     assert exc_info.value.status_code == 403
+
+
+def test_auth_me_returns_profile_with_facility_name(client: TestClient, seeded_admin):
+    """GET /auth/me returns the logged-in user's profile, including the facility's name."""
+    facility, admin, password = seeded_admin
+    client.post("/auth/login", json={"email": admin.email, "password": password})
+
+    response = client.get("/auth/me")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == admin.id
+    assert body["full_name"] == admin.full_name
+    assert body["role"] == "admin"
+    assert body["facility_id"] == facility.id
+    assert body["facility_name"] == facility.name
+
+
+def test_auth_me_requires_authentication(client: TestClient):
+    """GET /auth/me rejects requests with no token."""
+    response = client.get("/auth/me")
+    assert response.status_code == 401
+
+
+def test_logout_redirects_for_browser_navigation(client: TestClient, seeded_admin):
+    """A plain GET /logout (no Accept: application/json) still redirects, as before."""
+    _facility, admin, password = seeded_admin
+    client.post("/auth/login", json={"email": admin.email, "password": password})
+
+    response = client.get("/logout", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/login"
+
+
+def test_logout_returns_json_when_requested(client: TestClient, seeded_admin):
+    """GET /logout with Accept: application/json clears the cookie and returns JSON instead of redirecting."""
+    _facility, admin, password = seeded_admin
+    client.post("/auth/login", json={"email": admin.email, "password": password})
+
+    response = client.get("/logout", headers={"Accept": "application/json"}, follow_redirects=False)
+
+    assert response.status_code == 200
+    assert response.json() == {"detail": "Logged out"}
+
+    # The cookie should be cleared either way.
+    protected = client.get("/auth/me")
+    assert protected.status_code == 401
