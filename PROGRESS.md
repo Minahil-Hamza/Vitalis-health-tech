@@ -97,10 +97,35 @@ parallel with the current app (nothing breaks until cutover) via this sub-roadma
     dashboard, and JSON logout (with a real cookie-jar round-trip confirming the cookie
     actually clears) — all while confirming the old HTML pages still render identically
   - No new libraries, no migration — pure response-shaping on existing data
-- **Phase 8 — React app shell (2D)**: not started. Scaffold `frontend/` (Vite + plain JS
-  + React, no TypeScript by default), recreate login/dashboard/patient
-  search-create-summary/admin/timeline/access-history as React components calling the
-  Phase 7 JSON endpoints. Functional parity with the current app before any 3D work.
+- **Phase 8 — React app shell (2D) — DONE**
+  - `frontend/`: Vite + plain JS + React (no TypeScript) + react-router-dom, scaffolded
+    with `npm create vite@latest`
+  - Pages: `LoginPage`, `DashboardPage`, `PatientNewPage`, `PatientSummaryPage` (allergy
+    banner + inline add-allergy/medication/record forms + stop-medication, replicating
+    the Jinja2 page's `window.prompt` override-reason flow for blocked medications),
+    `PatientTimelinePage`, `AccessHistoryPage` (with pagination), `AdminDashboardPage`
+    (staff list, add/deactivate, counts) — full functional parity with the current app
+  - `src/api.js`: thin fetch wrapper always sending `Accept: application/json` +
+    `credentials: 'same-origin'`; `src/AuthContext.jsx`: current-user state via
+    `GET /auth/me`, used by `ProtectedRoute` for route guarding (including role checks)
+  - `vite.config.js`: dev-server proxy to the backend (port 8001), with a `bypass`
+    function that inspects the `Accept` header — a real browser navigation to e.g.
+    `/patients/:id` falls through to Vite's own SPA shell, while the app's own
+    `Accept: application/json` fetches get proxied to FastAPI. **No backend changes
+    were needed for this** — Phase 7's content-negotiation design turned out to be
+    exactly right for it. (Production won't need this at all: the built SPA will be
+    served by FastAPI itself, same-origin, no proxy.)
+  - `styles.css` ported from `app/static/style.css` unchanged (same brand colors, same
+    `.allergy-banner`/`.interaction-warning-banner`/`.form-error` classes)
+  - 8 Vitest + React Testing Library tests: `api.js` request/error-shape behavior,
+    unauthenticated redirect to `/login`, admin-only dashboard link visibility,
+    login-page error display and API-call shape
+  - Verified against the real backend with both dev servers running: login and
+    `/auth/me` through the proxy, and — the key architectural test — hit the exact same
+    URL (`/patients/{id}`) twice, once with `Accept: application/json` (proxied to
+    FastAPI, got JSON) and once without (Vite served its own `index.html`), confirming
+    the dual-purpose routing actually works end to end, not just in theory
+  - Old Jinja2 app fully untouched; `pytest` still 70/70
 - **Phase 9 — 3D patient visualization**: not started. react-three-fiber + Three.js; body
   model sourcing and the condition-to-body-region mapping (leaning toward a manual
   "body region" field on Condition rather than guessing from free text) still need

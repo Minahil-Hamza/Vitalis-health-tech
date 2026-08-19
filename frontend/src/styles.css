@@ -1,0 +1,99 @@
+:root {
+  --color-primary: #0E7A5F;
+  --color-warning: #C4331B; /* reserved exclusively for allergy/interaction warnings */
+  --color-bg: #FFFFFF;
+  --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-stack);
+  background: var(--color-bg);
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input, button, select, textarea {
+  font-size: 1rem;
+  padding: 0.5rem;
+  font-family: inherit;
+}
+
+button {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+/* Generic form/validation errors — NOT the clinical allergy/interaction warning color. */
+.form-error {
+  color: #4A4A4A;
+  font-weight: 600;
+}
+
+/* Allergy warnings only. Do not reuse --color-warning for anything else. */
+.allergy-banner {
+  background: var(--color-warning);
+  color: #FFFFFF;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.allergy-banner ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* Non-blocking minor/moderate drug interaction warnings. Yellow, not the reserved red. */
+.interaction-warning-banner {
+  background: #FEF3C7;
+  color: #92400E;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.interaction-warning-banner ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-weight: normal;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.4rem;
+  border-bottom: 1px solid #E5E5E5;
+  white-space: nowrap;
+}

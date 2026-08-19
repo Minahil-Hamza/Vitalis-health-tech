@@ -46,6 +46,30 @@ drug-interaction safety check block the save.
 pytest
 ```
 
+## React frontend (in progress, not yet the default app)
+
+A React rewrite lives in `frontend/`, being built in parallel with the app above per the
+roadmap in `PROGRESS.md` — nothing here replaces the Jinja2 app until it reaches full
+parity and a deliberate cutover. Currently covers 2D login/dashboard/patient/admin pages
+(no 3D visualization yet).
+
+Requires Node.js (v20+) and the backend running per the steps above.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (usually http://localhost:5173/) and log in with any seeded
+demo account. The dev server proxies API calls to the backend on port 8001 — start the
+backend with `uvicorn app.main:app --reload --port 8001` if you're running both at once.
+
+```bash
+npm test    # Vitest + React Testing Library
+npm run build
+```
+
 ## Project structure
 
 ```
@@ -64,6 +88,7 @@ scripts/
 ├── seed_facility.py             # Interactive: create the first real facility + admin
 └── seed_demo.py                  # Non-interactive: demo dataset (this README's path)
 tests/
+frontend/                         # React rewrite, in progress — see the section above
 ```
 
 ## Deployment notes
