@@ -19,61 +19,71 @@ export function AccessHistoryPage() {
 
   if (error) {
     return (
-      <main>
+      <>
         <h1 className="form-error">Access restricted</h1>
         <p>{error}</p>
-      </main>
+      </>
     )
   }
-  if (!data) return <main><p>Loading...</p></main>
+  if (!data) return <p className="route-loading">Loading...</p>
 
   return (
-    <main>
-      <h1>Access History</h1>
-      <p>
-        <Link to={`/patients/${patientId}`}>Back to summary</Link>
-      </p>
-      {data.entries.length > 0 ? (
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Action</th>
-                <th>Staff</th>
-                <th>Facility</th>
-                <th>Override reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td>{entry.timestamp}</td>
-                  <td>{entry.action}</td>
-                  <td>{entry.user_name || '—'}</td>
-                  <td>{entry.facility_name || '—'}</td>
-                  <td>{entry.override_reason || ''}</td>
+    <>
+      <div className="page-header">
+        <h1>Access History</h1>
+        <p>
+          <Link to={`/patients/${patientId}`}>&larr; Back to summary</Link>
+        </p>
+      </div>
+
+      <div className="card">
+        {data.entries.length > 0 ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Action</th>
+                  <th>Staff</th>
+                  <th>Facility</th>
+                  <th>Override reason</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p>No access history yet.</p>
-      )}
-      <p>
-        {page > 1 && (
-          <button type="button" onClick={() => setSearchParams({ page: String(page - 1) })}>
-            &laquo; Previous
-          </button>
-        )}{' '}
-        Page {data.page} of {data.total_pages}{' '}
-        {page < data.total_pages && (
-          <button type="button" onClick={() => setSearchParams({ page: String(page + 1) })}>
-            Next &raquo;
-          </button>
+              </thead>
+              <tbody>
+                {data.entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.timestamp}</td>
+                    <td>
+                      <span className="badge">{entry.action.replace(/_/g, ' ')}</span>
+                    </td>
+                    <td>{entry.user_name || '—'}</td>
+                    <td>{entry.facility_name || '—'}</td>
+                    <td>{entry.override_reason || ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">No access history yet.</p>
         )}
-      </p>
-    </main>
+
+        <div className="pagination">
+          {page > 1 && (
+            <button type="button" className="btn-sm" onClick={() => setSearchParams({ page: String(page - 1) })}>
+              &laquo; Previous
+            </button>
+          )}
+          <span className="muted">
+            Page {data.page} of {data.total_pages}
+          </span>
+          {page < data.total_pages && (
+            <button type="button" className="btn-sm" onClick={() => setSearchParams({ page: String(page + 1) })}>
+              Next &raquo;
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   )
 }

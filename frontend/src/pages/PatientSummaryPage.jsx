@@ -41,113 +41,137 @@ export function PatientSummaryPage() {
 
   if (error) {
     return (
-      <main>
+      <>
         <h1 className="form-error">Access restricted</h1>
         <p>{error}</p>
-      </main>
+      </>
     )
   }
-  if (!patient) return <main><p>Loading...</p></main>
+  if (!patient) return <p className="route-loading">Loading...</p>
 
   return (
-    <main>
+    <>
       {patient.allergies.length > 0 && (
         <div className="allergy-banner">
-          <strong>Allergy warning:</strong>
-          <ul>
-            {patient.allergies.map((a) => (
-              <li key={a.id}>
-                {a.substance} ({a.severity})
-              </li>
-            ))}
-          </ul>
+          <div>
+            <strong>Allergy warning</strong>
+            <ul>
+              {patient.allergies.map((a) => (
+                <li key={a.id}>
+                  {a.substance} ({a.severity})
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
-      <h1>{patient.full_name}</h1>
-      <p>CNIC: {patient.cnic}</p>
-      <p>Date of birth: {patient.date_of_birth}</p>
-      <p>Gender: {patient.gender}</p>
-      {patient.blood_group && <p>Blood group: {patient.blood_group}</p>}
-      {patient.is_creating_facility && (
-        <p>
-          <Link to={`/patients/${patientId}/access-history`}>View access history</Link>
+      <div className="card">
+        <div className="card-header">
+          <h1 style={{ marginBottom: 0 }}>{patient.full_name}</h1>
+          {patient.is_creating_facility && (
+            <Link to={`/patients/${patientId}/access-history`} className="btn-sm-link">
+              View access history
+            </Link>
+          )}
+        </div>
+        <p className="muted">
+          CNIC {patient.cnic} &middot; {patient.gender} &middot; DOB {patient.date_of_birth}
+          {patient.blood_group && <> &middot; Blood group {patient.blood_group}</>}
         </p>
-      )}
+      </div>
 
-      <AllergyForm patientId={patientId} onAdded={load} />
-
-      <h2>Chronic conditions</h2>
-      <ErrorBoundary fallback={<p className="body3d-empty">The 3D view couldn't be displayed — see the list below.</p>}>
-        <Body3D conditions={patient.conditions} />
-      </ErrorBoundary>
-      {patient.conditions.length > 0 ? (
-        <ul>
-          {patient.conditions.map((c) => (
-            <li key={c.id}>
-              {c.name}
-              {c.diagnosed_date ? ` — diagnosed ${c.diagnosed_date}` : ''}
-              {c.body_region ? ` (${c.body_region.replace('_', ' ')})` : ''}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No chronic conditions recorded.</p>
-      )}
-
-      <ConditionForm patientId={patientId} onAdded={load} />
-
-      <h2>Current medications</h2>
-      {patient.active_medications.length > 0 ? (
-        <ul>
-          {patient.active_medications.map((m) => (
-            <li key={m.id}>
-              {m.drug_name} {m.dose} — {m.frequency}{' '}
-              <StopMedicationButton patientId={patientId} medicationId={m.id} onStopped={load} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No current medications.</p>
-      )}
-
-      {patient.past_medications.length > 0 && (
-        <>
-          <h3>Past medications</h3>
-          <ul>
-            {patient.past_medications.map((m) => (
-              <li key={m.id}>
-                {m.drug_name} {m.dose} — {m.frequency} (stopped {m.stopped_at})
+      <div className="card">
+        <h2>Chronic conditions</h2>
+        <ErrorBoundary
+          fallback={<p className="body3d-empty">The 3D view couldn't be displayed — see the list below.</p>}
+        >
+          <Body3D conditions={patient.conditions} />
+        </ErrorBoundary>
+        {patient.conditions.length > 0 ? (
+          <ul className="entry-list">
+            {patient.conditions.map((c) => (
+              <li key={c.id}>
+                <span>
+                  {c.name}
+                  {c.diagnosed_date ? <span className="entry-meta">diagnosed {c.diagnosed_date}</span> : null}
+                </span>
+                {c.body_region && <span className="badge">{c.body_region.replace('_', ' ')}</span>}
               </li>
             ))}
           </ul>
-        </>
-      )}
+        ) : (
+          <p className="muted">No chronic conditions recorded.</p>
+        )}
+        <ConditionForm patientId={patientId} onAdded={load} />
+      </div>
 
-      <MedicationForm patientId={patientId} onAdded={load} />
+      <div className="card">
+        <h2>Allergies</h2>
+        {patient.allergies.length === 0 && <p className="muted">No known allergies.</p>}
+        <AllergyForm patientId={patientId} onAdded={load} />
+      </div>
 
-      <h2>Records</h2>
-      <p>
-        <Link to={`/patients/${patientId}/timeline`}>View full timeline</Link> (showing latest 10 below)
-      </p>
-      {patient.records.length > 0 ? (
-        <ul>
-          {patient.records.map((r) => (
-            <li key={r.id}>
-              <strong>{r.record_type}</strong> — {r.title}
-              <br />
-              <small>
-                {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
-              </small>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No records yet.</p>
-      )}
+      <div className="card">
+        <h2>Medications</h2>
+        <h3>Current</h3>
+        {patient.active_medications.length > 0 ? (
+          <ul className="entry-list">
+            {patient.active_medications.map((m) => (
+              <li key={m.id}>
+                <span>
+                  {m.drug_name} {m.dose} <span className="entry-meta">{m.frequency}</span>
+                </span>
+                <StopMedicationButton patientId={patientId} medicationId={m.id} onStopped={load} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No current medications.</p>
+        )}
 
-      <RecordForm patientId={patientId} onAdded={load} />
-    </main>
+        {patient.past_medications.length > 0 && (
+          <>
+            <h3>Past</h3>
+            <ul className="entry-list">
+              {patient.past_medications.map((m) => (
+                <li key={m.id}>
+                  <span>
+                    {m.drug_name} {m.dose} <span className="entry-meta">{m.frequency}</span>
+                  </span>
+                  <span className="badge badge-inactive">stopped {m.stopped_at}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <MedicationForm patientId={patientId} onAdded={load} />
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2 style={{ marginBottom: 0 }}>Recent records</h2>
+          <Link to={`/patients/${patientId}/timeline`}>View full timeline</Link>
+        </div>
+        {patient.records.length > 0 ? (
+          <ul className="entry-list entry-list-stacked">
+            {patient.records.map((r) => (
+              <li key={r.id}>
+                <div>
+                  <span className="badge">{r.record_type.replace('_', ' ')}</span> <strong>{r.title}</strong>
+                  <span className="entry-meta">
+                    {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No records yet.</p>
+        )}
+        <RecordForm patientId={patientId} onAdded={load} />
+      </div>
+    </>
   )
 }
 
@@ -169,8 +193,8 @@ function AllergyForm({ patientId, onAdded }) {
   }
 
   return (
-    <>
-      <h2>Allergies</h2>
+    <details className="add-form">
+      <summary>+ Add allergy</summary>
       <form onSubmit={handleSubmit}>
         <label htmlFor="substance">Substance</label>
         <input id="substance" value={substance} onChange={(e) => setSubstance(e.target.value)} required />
@@ -185,7 +209,7 @@ function AllergyForm({ patientId, onAdded }) {
         <button type="submit">Add allergy</button>
         {error && <p className="form-error">{error}</p>}
       </form>
-    </>
+    </details>
   )
 }
 
@@ -215,30 +239,32 @@ function ConditionForm({ patientId, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Add condition</h3>
-      <label htmlFor="condition_name">Name</label>
-      <input id="condition_name" value={form.name} onChange={(e) => update('name', e.target.value)} required />
-      <label htmlFor="diagnosed_date">Diagnosed</label>
-      <input
-        id="diagnosed_date"
-        type="date"
-        value={form.diagnosed_date}
-        onChange={(e) => update('diagnosed_date', e.target.value)}
-      />
-      <label htmlFor="body_region">Body region</label>
-      <select id="body_region" value={form.body_region} onChange={(e) => update('body_region', e.target.value)}>
-        {BODY_REGIONS.map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="condition_notes">Notes</label>
-      <textarea id="condition_notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} />
-      <button type="submit">Add condition</button>
-      {error && <p className="form-error">{error}</p>}
-    </form>
+    <details className="add-form">
+      <summary>+ Add condition</summary>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="condition_name">Name</label>
+        <input id="condition_name" value={form.name} onChange={(e) => update('name', e.target.value)} required />
+        <label htmlFor="diagnosed_date">Diagnosed</label>
+        <input
+          id="diagnosed_date"
+          type="date"
+          value={form.diagnosed_date}
+          onChange={(e) => update('diagnosed_date', e.target.value)}
+        />
+        <label htmlFor="body_region">Body region</label>
+        <select id="body_region" value={form.body_region} onChange={(e) => update('body_region', e.target.value)}>
+          {BODY_REGIONS.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="condition_notes">Notes</label>
+        <textarea id="condition_notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} />
+        <button type="submit">Add condition</button>
+        {error && <p className="form-error">{error}</p>}
+      </form>
+    </details>
   )
 }
 
@@ -252,7 +278,7 @@ function StopMedicationButton({ patientId, medicationId, onStopped }) {
     }
   }
   return (
-    <button type="button" onClick={handleClick}>
+    <button type="button" className="btn-sm" onClick={handleClick}>
       Stop
     </button>
   )
@@ -311,27 +337,29 @@ function MedicationForm({ patientId, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Add medication</h3>
-      <label htmlFor="drug_name">Drug name</label>
-      <input id="drug_name" value={form.drug_name} onChange={(e) => update('drug_name', e.target.value)} required />
-      <label htmlFor="brand_name">Brand name</label>
-      <input id="brand_name" value={form.brand_name} onChange={(e) => update('brand_name', e.target.value)} />
-      <label htmlFor="dose">Dose</label>
-      <input id="dose" value={form.dose} onChange={(e) => update('dose', e.target.value)} required />
-      <label htmlFor="frequency">Frequency</label>
-      <input id="frequency" value={form.frequency} onChange={(e) => update('frequency', e.target.value)} required />
-      <label htmlFor="started_at">Started</label>
-      <input
-        id="started_at"
-        type="date"
-        value={form.started_at}
-        onChange={(e) => update('started_at', e.target.value)}
-        required
-      />
-      <button type="submit">Add medication</button>
-      {error && <p className="form-error">{error}</p>}
-    </form>
+    <details className="add-form">
+      <summary>+ Add medication</summary>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="drug_name">Drug name</label>
+        <input id="drug_name" value={form.drug_name} onChange={(e) => update('drug_name', e.target.value)} required />
+        <label htmlFor="brand_name">Brand name</label>
+        <input id="brand_name" value={form.brand_name} onChange={(e) => update('brand_name', e.target.value)} />
+        <label htmlFor="dose">Dose</label>
+        <input id="dose" value={form.dose} onChange={(e) => update('dose', e.target.value)} required />
+        <label htmlFor="frequency">Frequency</label>
+        <input id="frequency" value={form.frequency} onChange={(e) => update('frequency', e.target.value)} required />
+        <label htmlFor="started_at">Started</label>
+        <input
+          id="started_at"
+          type="date"
+          value={form.started_at}
+          onChange={(e) => update('started_at', e.target.value)}
+          required
+        />
+        <button type="submit">Add medication</button>
+        {error && <p className="form-error">{error}</p>}
+      </form>
+    </details>
   )
 }
 
@@ -356,22 +384,24 @@ function RecordForm({ patientId, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Add record</h3>
-      <label htmlFor="record_type">Type</label>
-      <select id="record_type" value={form.record_type} onChange={(e) => update('record_type', e.target.value)}>
-        {RECORD_TYPES.map((t) => (
-          <option key={t} value={t}>
-            {t.replace('_', ' ')}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="title">Title</label>
-      <input id="title" value={form.title} onChange={(e) => update('title', e.target.value)} required />
-      <label htmlFor="details">Details</label>
-      <textarea id="details" value={form.details} onChange={(e) => update('details', e.target.value)} required />
-      <button type="submit">Add record</button>
-      {error && <p className="form-error">{error}</p>}
-    </form>
+    <details className="add-form">
+      <summary>+ Add record</summary>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="record_type">Type</label>
+        <select id="record_type" value={form.record_type} onChange={(e) => update('record_type', e.target.value)}>
+          {RECORD_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t.replace('_', ' ')}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="title">Title</label>
+        <input id="title" value={form.title} onChange={(e) => update('title', e.target.value)} required />
+        <label htmlFor="details">Details</label>
+        <textarea id="details" value={form.details} onChange={(e) => update('details', e.target.value)} required />
+        <button type="submit">Add record</button>
+        {error && <p className="form-error">{error}</p>}
+      </form>
+    </details>
   )
 }

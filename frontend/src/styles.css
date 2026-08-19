@@ -1,7 +1,21 @@
 :root {
   --color-primary: #0E7A5F;
+  --color-primary-dark: #0A5F49;
+  --color-primary-light: #E5F3EF;
   --color-warning: #C4331B; /* reserved exclusively for allergy/interaction warnings */
-  --color-bg: #FFFFFF;
+  --color-warning-light: #FDECEA;
+  --color-caution-bg: #FEF3C7;
+  --color-caution-text: #92400E;
+  --color-bg: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-text: #1B2430;
+  --color-text-muted: #667085;
+  --color-border: #E4E7EC;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 16px rgba(16, 24, 40, 0.08);
   --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -12,64 +26,360 @@
 body {
   font-family: var(--font-stack);
   background: var(--color-bg);
+  color: var(--color-text);
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-main {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 1.5rem;
+h1, h2, h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
 }
+
+h1 { font-size: 1.5rem; font-weight: 700; }
+h2 { font-size: 1.125rem; font-weight: 600; margin-top: 0; }
+h3 { font-size: 1rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
+
+p { margin: 0 0 0.5rem; }
+
+a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* ---------- App shell / navbar ---------- */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+.navbar-brand:hover { text-decoration: none; }
+
+.navbar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar-user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.navbar-user-name + .badge {
+  margin-left: -0.4rem;
+}
+
+/* ---------- Login screen (no navbar — outside auth) ---------- */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--color-bg);
+}
+
+.login-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+.login-brand h1 { margin: 0; }
+
+.login-subtitle {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+}
+
+/* ---------- Page layout ---------- */
+
+.page-container {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header p {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-link {
+  display: block;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.card-link:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.btn-sm-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stat-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-tile .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  display: block;
+}
+
+.stat-tile .stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- Forms ---------- */
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.85rem;
 }
 
-input, button, select, textarea {
-  font-size: 1rem;
-  padding: 0.5rem;
-  font-family: inherit;
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: -0.5rem;
 }
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+textarea { resize: vertical; min-height: 4.5rem; }
+
+label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  color: var(--color-text);
+  text-transform: none;
+}
+input[type="checkbox"] { width: auto; }
+
+/* ---------- Buttons ---------- */
 
 button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+button[type="submit"], .btn-primary {
   background: var(--color-primary);
   color: #FFFFFF;
+}
+button[type="submit"]:hover, .btn-primary:hover { background: var(--color-primary-dark); }
+
+button[type="button"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+button[type="button"]:hover { background: var(--color-bg); }
+
+.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+
+/* button.btn-ghost (not just .btn-ghost) so this beats button[type="button"]'s equal
+   specificity via a matching element+class selector, regardless of source order. */
+button.btn-ghost {
+  background: transparent;
   border: none;
-  border-radius: 4px;
-  padding: 0.75rem;
-  cursor: pointer;
+  color: var(--color-text-muted);
+}
+button.btn-ghost:hover { background: var(--color-bg); color: var(--color-text); }
+
+/* ---------- Badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
-/* Generic form/validation errors — NOT the clinical allergy/interaction warning color. */
+.badge-role { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: transparent; }
+.badge-active { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: transparent; }
+.badge-inactive { background: var(--color-bg); color: var(--color-text-muted); }
+
+/* ---------- Generic errors — NOT the clinical allergy/interaction warning color. ---------- */
+
 .form-error {
-  color: #4A4A4A;
-  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-text-muted);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
-/* Allergy warnings only. Do not reuse --color-warning for anything else. */
+/* ---------- Allergy warnings only. Do not reuse --color-warning for anything else. ---------- */
+
 .allergy-banner {
-  background: var(--color-warning);
-  color: #FFFFFF;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  font-weight: 600;
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  color: #7A2012;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.allergy-banner-icon {
+  flex-shrink: 0;
+  color: var(--color-warning);
+}
+
+.allergy-banner strong {
+  color: var(--color-warning);
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .allergy-banner ul {
-  margin: 0.5rem 0 0;
-  padding-left: 1.25rem;
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
 }
 
-/* Non-blocking minor/moderate drug interaction warnings. Yellow, not the reserved red. */
+/* ---------- Non-blocking minor/moderate drug interaction warnings. Amber, not the reserved red. ---------- */
+
 .interaction-warning-banner {
-  background: #FEF3C7;
-  color: #92400E;
+  background: var(--color-caution-bg);
+  color: var(--color-caution-text);
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
   font-weight: 600;
 }
@@ -80,37 +390,119 @@ button {
   font-weight: normal;
 }
 
-.table-scroll {
-  overflow-x: auto;
-}
+/* ---------- Tables ---------- */
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  font-size: 0.88rem;
+}
+
+th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+td {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+tbody tr:hover { background: var(--color-bg); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* ---------- Lists used for allergies/conditions/medications/records ---------- */
+
+.entry-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entry-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
 }
 
-th, td {
-  text-align: left;
-  padding: 0.4rem;
-  border-bottom: 1px solid #E5E5E5;
-  white-space: nowrap;
+.entry-list .entry-meta {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
 }
+
+/* Timeline entries need the full details text below the header line, so they stack
+   vertically instead of the default single-row layout. */
+.entry-list.entry-list-stacked li {
+  flex-direction: column;
+  align-items: stretch;
+}
+.entry-list-stacked .entry-details {
+  margin: 0.4rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.muted { color: var(--color-text-muted); font-size: 0.9rem; }
+
+details.add-form {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+details.add-form > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-primary);
+  list-style: none;
+}
+details.add-form > summary::-webkit-details-marker { display: none; }
+details.add-form[open] > summary { margin-bottom: 0.75rem; }
+details.add-form form { margin-top: 0.25rem; }
+
+/* ---------- 3D visualization ---------- */
 
 .body3d-canvas {
   width: 100%;
   height: 320px;
-  background: #F3F4F6;
-  border-radius: 8px;
-  margin: 1rem 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
 }
 
 .body3d-tooltip {
-  background: #1F2937;
+  background: #1B2430;
   color: #FFFFFF;
   padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   max-width: 200px;
   white-space: normal;
@@ -118,20 +510,18 @@ th, td {
 }
 
 .body3d-empty {
-  color: #6B7280;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .route-loading {
-  color: #6B7280;
+  color: var(--color-text-muted);
   text-align: center;
-  padding: 2rem 0;
+  padding: 3rem 0;
 }
 
-/* Smaller canvas on phones — less fill-rate cost, and the model doesn't need the
-   extra vertical space on a narrow, tall viewport. */
 @media (max-width: 480px) {
-  .body3d-canvas {
-    height: 240px;
-  }
+  .body3d-canvas { height: 240px; }
+  .page-container { padding: 1rem 1rem 2rem; }
+  .navbar { padding: 0.6rem 1rem; }
 }

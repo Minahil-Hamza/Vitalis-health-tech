@@ -43,7 +43,7 @@ describe('App routing', () => {
     renderAt('/')
 
     await waitFor(() => expect(screen.getByText('Welcome, Dr. Test')).toBeInTheDocument())
-    expect(screen.getByText('Facility: Test Clinic')).toBeInTheDocument()
+    expect(screen.getByText('Test Clinic')).toBeInTheDocument()
     // Non-admin shouldn't see the admin dashboard link.
     expect(screen.queryByText('Admin dashboard')).not.toBeInTheDocument()
   })

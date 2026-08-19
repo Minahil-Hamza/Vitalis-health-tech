@@ -16,36 +16,41 @@ export function PatientTimelinePage() {
 
   if (error) {
     return (
-      <main>
+      <>
         <h1 className="form-error">Access restricted</h1>
         <p>{error}</p>
-      </main>
+      </>
     )
   }
-  if (!records) return <main><p>Loading...</p></main>
+  if (!records) return <p className="route-loading">Loading...</p>
 
   return (
-    <main>
-      <h1>Timeline</h1>
-      <p>
-        <Link to={`/patients/${patientId}`}>Back to summary</Link>
-      </p>
+    <>
+      <div className="page-header">
+        <h1>Timeline</h1>
+        <p>
+          <Link to={`/patients/${patientId}`}>&larr; Back to summary</Link>
+        </p>
+      </div>
+
       {records.length > 0 ? (
-        <ul>
+        <ul className="entry-list entry-list-stacked">
           {records.map((r) => (
             <li key={r.id}>
-              <strong>{r.record_type}</strong> — {r.title}
-              <br />
-              <small>
-                {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
-              </small>
-              <p>{r.details}</p>
+              <div>
+                <span className="badge">{r.record_type.replace('_', ' ')}</span>{' '}
+                <strong>{r.title}</strong>
+                <span className="entry-meta">
+                  {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
+                </span>
+              </div>
+              <p className="entry-details">{r.details}</p>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No records yet.</p>
+        <p className="muted">No records yet.</p>
       )}
-    </main>
+    </>
   )
 }

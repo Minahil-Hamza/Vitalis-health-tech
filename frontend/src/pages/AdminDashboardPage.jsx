@@ -34,59 +34,78 @@ export function AdminDashboardPage() {
 
   if (error) {
     return (
-      <main>
+      <>
         <h1 className="form-error">Access restricted</h1>
         <p>{error}</p>
-      </main>
+      </>
     )
   }
-  if (!data) return <main><p>Loading...</p></main>
+  if (!data) return <p className="route-loading">Loading...</p>
 
   return (
-    <main>
-      <h1>Admin dashboard</h1>
-      <p>
-        <Link to="/">Back to dashboard</Link>
-      </p>
-
-      <h2>This month</h2>
-      <p>Patients created: {data.patients_created}</p>
-      <p>Records this month: {data.records_this_month}</p>
-
-      <h2>Staff</h2>
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.staff.map((member) => (
-              <tr key={member.id}>
-                <td>{member.full_name}</td>
-                <td>{member.email}</td>
-                <td>{member.role}</td>
-                <td>{member.is_active ? 'Active' : 'Deactivated'}</td>
-                <td>
-                  {member.is_active && member.id !== user.id && (
-                    <button type="button" onClick={() => handleDeactivate(member.id)}>
-                      Deactivate
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <>
+      <div className="page-header">
+        <h1>Admin dashboard</h1>
+        <p>
+          <Link to="/">&larr; Back to dashboard</Link>
+        </p>
       </div>
 
-      <AddStaffForm onAdded={load} />
-    </main>
+      <div className="grid grid-2" style={{ marginBottom: '1.25rem' }}>
+        <div className="stat-tile">
+          <span className="stat-value">{data.patients_created}</span>
+          <span className="stat-label">Patients created</span>
+        </div>
+        <div className="stat-tile">
+          <span className="stat-value">{data.records_this_month}</span>
+          <span className="stat-label">Records this month</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>Staff</h2>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.staff.map((member) => (
+                <tr key={member.id}>
+                  <td>{member.full_name}</td>
+                  <td>{member.email}</td>
+                  <td>
+                    <span className="badge badge-role">{member.role}</span>
+                  </td>
+                  <td>
+                    <span className={`badge ${member.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                      {member.is_active ? 'Active' : 'Deactivated'}
+                    </span>
+                  </td>
+                  <td>
+                    {member.is_active && member.id !== user.id && (
+                      <button type="button" className="btn-sm" onClick={() => handleDeactivate(member.id)}>
+                        Deactivate
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <AddStaffForm onAdded={load} />
+      </div>
+    </>
   )
 }
 
@@ -112,7 +131,7 @@ function AddStaffForm({ onAdded }) {
 
   return (
     <>
-      <h3>Add staff</h3>
+      <h2>Add staff</h2>
       <form onSubmit={handleSubmit}>
         <label htmlFor="full_name">Full name</label>
         <input id="full_name" value={form.full_name} onChange={(e) => update('full_name', e.target.value)} required />

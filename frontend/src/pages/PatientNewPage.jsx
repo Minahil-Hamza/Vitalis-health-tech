@@ -44,8 +44,12 @@ export function PatientNewPage() {
   }
 
   return (
-    <main>
-      <h1>Add Patient</h1>
+    <>
+      <div className="page-header">
+        <h1>Add Patient</h1>
+        <p>Register a new patient, identified by CNIC across every facility.</p>
+      </div>
+      <div className="card">
       <form onSubmit={handleSubmit}>
         <label htmlFor="cnic">CNIC</label>
         <input
@@ -103,6 +107,7 @@ export function PatientNewPage() {
         <button type="submit">Create patient</button>
         {error && <p className="form-error">{error}</p>}
       </form>
-    </main>
+      </div>
+    </>
   )
 }
