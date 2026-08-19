@@ -6,13 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.audit_log import AuditAction
-from app.models.drug_interaction import InteractionSeverity
 from app.models.medication import Medication
 from app.models.user import User
 from app.schemas.medication import MedicationCreate, MedicationCreateResponse, MedicationOut
-from app.schemas.safety import InteractionWarning, SafetyBlockedDetail
 from app.services.audit import log_action
-from app.services.interactions import check_allergy, check_interactions
+from app.services.interactions import evaluate_drug_safety
 from app.services.patient_access import CONSENT_DENIED_DETAIL, get_patient_or_404, has_consent_access
 from app.services.security import get_current_user
 
@@ -35,30 +33,7 @@ def add_medication(
     if not has_consent_access(patient, user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=CONSENT_DENIED_DETAIL)
 
-    interactions = check_interactions(payload.drug_name, patient, db)
-    allergy_hits = check_allergy(payload.drug_name, patient, db)
-    major_interactions = [i for i in interactions if i.severity == InteractionSeverity.MAJOR]
-    minor_moderate_interactions = [i for i in interactions if i.severity != InteractionSeverity.MAJOR]
-    blocking = bool(major_interactions) or bool(allergy_hits)
-
-    override_reason = payload.override_reason.strip() if payload.override_reason else None
-
-    if blocking and not override_reason:
-        detail = SafetyBlockedDetail(
-            message="This medication requires an override reason due to a major interaction or a recorded allergy.",
-            interactions=[
-                InteractionWarning(
-                    drug_a=i.drug_a,
-                    drug_b=i.drug_b,
-                    severity=i.severity.value,
-                    description=i.description,
-                    recommendation=i.recommendation,
-                )
-                for i in major_interactions
-            ],
-            allergy_hits=[a.substance for a in allergy_hits],
-        )
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail.model_dump())
+    override_reason, warnings = evaluate_drug_safety(payload.drug_name, patient, db, payload.override_reason)
 
     medication = Medication(
         patient_id=patient.id,
@@ -69,7 +44,7 @@ def add_medication(
         started_at=payload.started_at,
         prescribed_by_user_id=user.id,
         facility_id=user.facility_id,
-        override_reason=override_reason if blocking else None,
+        override_reason=override_reason,
     )
     db.add(medication)
     db.commit()
@@ -83,13 +58,6 @@ def add_medication(
         patient_id=patient.id,
         override_reason=medication.override_reason,
     )
-
-    new_drug_lower = payload.drug_name.strip().lower()
-    warnings = [
-        f"{i.severity.value.capitalize()} interaction with "
-        f"{i.drug_b if i.drug_a == new_drug_lower else i.drug_a}: {i.description}"
-        for i in minor_moderate_interactions
-    ]
 
     return MedicationCreateResponse(
         id=medication.id,

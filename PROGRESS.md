@@ -238,5 +238,49 @@ Everything else checked — all other model fields match `Vitalis.md` exactly, A
 no update/delete path anywhere, no CNIC/phone is ever logged in `app/`, secrets/`.env`
 handling and CORS same-origin are intact — came back compliant.
 
+## Phase 4 refinement (2026-08-19)
+
+Founder appended a more detailed Phase 4 re-spec directly to `Vitalis.md` (CSV columns,
+case/order-insensitive matching, blocking/override UX, tests) after Phase 4 had already
+shipped. Comparing line by line: most of it already matched (CSV columns, case/order-
+insensitive `check_interactions`/`check_allergy`, the block-vs-warn logic, and all 5
+pytest scenarios asked for). Two real gaps were fixed, plus one deliberate scope
+expansion decided by the founder:
+
+- **Override reason minimum length (10 chars)**: added as a Pydantic validator
+  (`validate_override_reason_length` in `app/schemas/safety.py`, shared by
+  `MedicationCreate` and `RecordCreate`) — a too-short reason now gets a clean 422
+  instead of silently being accepted.
+- **Native `window.prompt()`/`alert()` replaced with styled in-page banners** in the
+  React app: `SafetyBlockedBanner` (red, matching the reserved allergy-banner color) with
+  an inline override-reason field, and `SafetyWarningBanner` (amber) for non-blocking
+  warnings — both live in `frontend/src/components/SafetyBanners.jsx`, shared by
+  `MedicationForm` and the new prescription-record flow in `RecordForm`. The Jinja2 app's
+  medication/record forms keep the `window.prompt()` flow (unchanged) but now also
+  enforce and message the same 10-character minimum client-side.
+- **Scope expansion, founder's explicit choice**: the safety checks now also run on
+  prescription-type `Record`s, not just `Medication`s — item 3 from the earlier audit,
+  previously deferred, now resolved as "yes." Added `Record.drug_name` (required only
+  when `record_type == "prescription"`) and `Record.override_reason` (migration
+  `9b9bd59105d7`), documented as an AMENDMENT in `Vitalis.md`'s data model section
+  alongside the Phase 9 `body_region` one. The interaction/allergy-check logic itself was
+  extracted into a shared `evaluate_drug_safety()` helper (`app/services/interactions.py`)
+  used by both `medications.py` and `records.py`, rather than duplicating the ~30-line
+  blocking/override logic a second time.
+- **CSV file**: the founder said she'd placed `drug_interactions_seed.csv` in the project
+  root, but it wasn't actually there when checked (confirmed twice). Built
+  `scripts/load_interactions_csv.py` (reusing the same parsing logic as the admin import
+  endpoint, refactored into `app/services/drug_interactions_import.py` so the two can
+  never drift apart) so it's ready to run the moment the file exists — not yet run for
+  real, since there's nothing to load yet.
+- 12 new backend tests (`test_record_safety.py`'s 9 mirror `test_medication_safety.py`'s
+  pattern exactly, plus one min-length test added to each). `pytest` 85/85, frontend
+  Vitest 13/13, both dev and production builds verified. Manually drove the full
+  prescription-record flow via `curl` against the real backend: missing `drug_name` on a
+  prescription record 422s, a major interaction 409s, a too-short override 422s, a valid
+  override saves and the audit row shows the reason flagged — then confirmed the same
+  behavior is available (untested visually — no browser here) in both apps' UI.
+
 ## Blockers
 - None. Note: port 8000 on this machine is occupied by Docker Desktop/WSL port-forwarding (unrelated to this project) — local dev server testing used port 8001 instead.
+- Waiting on `drug_interactions_seed.csv` to actually be placed in the project root — `scripts/load_interactions_csv.py` is built and ready, just has nothing to load yet.

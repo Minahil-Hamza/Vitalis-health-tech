@@ -153,6 +153,7 @@ def patient_summary(
                     record_type=record.record_type,
                     title=record.title,
                     details=record.details,
+                    drug_name=record.drug_name,
                     created_at=record.created_at,
                     facility_name=facility_name,
                     author_name=author_name,

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api, ApiError } from '../api'
 import { Body3D } from '../components/Body3D'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { SafetyBlockedBanner, SafetyWarningBanner, MIN_OVERRIDE_LENGTH } from '../components/SafetyBanners'
 
 const RECORD_TYPES = ['visit', 'prescription', 'lab_report', 'admission', 'discharge']
 const SEVERITIES = ['mild', 'moderate', 'severe']
@@ -159,6 +160,7 @@ export function PatientSummaryPage() {
               <li key={r.id}>
                 <div>
                   <span className="badge">{r.record_type.replace('_', ' ')}</span> <strong>{r.title}</strong>
+                  {r.drug_name && <span className="badge badge-role">{r.drug_name}</span>}
                   <span className="entry-meta">
                     {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
                   </span>
@@ -284,124 +286,224 @@ function StopMedicationButton({ patientId, medicationId, onStopped }) {
   )
 }
 
-async function submitMedication(patientId, payload) {
-  try {
-    return await api.post(`/patients/${patientId}/medications`, payload)
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 409) {
-      const detail = err.detail
-      let warningText = detail.message
-      detail.interactions.forEach((i) => {
-        const otherDrug = i.drug_a === payload.drug_name.trim().toLowerCase() ? i.drug_b : i.drug_a
-        warningText += `\n- ${i.severity.toUpperCase()} interaction with ${otherDrug}: ${i.description}`
-      })
-      detail.allergy_hits.forEach((substance) => {
-        warningText += `\n- Recorded allergy: ${substance}`
-      })
-
-      const reason = window.prompt(
-        warningText + '\n\nType a reason to override and save anyway, or cancel to not save:',
-      )
-      if (!reason || !reason.trim()) {
-        throw new ApiError(409, 'Not saved: an override reason is required.')
-      }
-      return api.post(`/patients/${patientId}/medications`, { ...payload, override_reason: reason.trim() })
-    }
-    throw err
-  }
-}
-
 function MedicationForm({ patientId, onAdded }) {
-  const [form, setForm] = useState({ drug_name: '', brand_name: '', dose: '', frequency: '', started_at: '' })
+  const emptyForm = { drug_name: '', brand_name: '', dose: '', frequency: '', started_at: '' }
+  const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [blocked, setBlocked] = useState(null)
+  const [overrideReason, setOverrideReason] = useState('')
+  const [warnings, setWarnings] = useState([])
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setError('')
+  function buildPayload(reason) {
     const payload = { ...form, brand_name: form.brand_name || null }
+    if (reason) payload.override_reason = reason
+    return payload
+  }
 
+  function handleSuccess(result) {
+    setForm(emptyForm)
+    setBlocked(null)
+    setOverrideReason('')
+    setError('')
+    setWarnings(result && result.warnings ? result.warnings : [])
+    onAdded()
+  }
+
+  async function trySave(payload) {
     try {
-      const result = await submitMedication(patientId, payload)
-      if (result && result.warnings && result.warnings.length > 0) {
-        alert('Saved with warnings:\n\n' + result.warnings.join('\n'))
-      }
-      setForm({ drug_name: '', brand_name: '', dose: '', frequency: '', started_at: '' })
-      onAdded()
+      const result = await api.post(`/patients/${patientId}/medications`, payload)
+      handleSuccess(result)
     } catch (err) {
-      setError(typeof err.detail === 'string' ? err.detail : 'Please check the form.')
+      if (err instanceof ApiError && err.status === 409) {
+        setBlocked(err.detail)
+      } else {
+        setError(typeof err.detail === 'string' ? err.detail : 'Please check the form.')
+      }
     }
   }
 
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setWarnings([])
+    await trySave(buildPayload())
+  }
+
+  async function handleConfirmOverride() {
+    if (overrideReason.trim().length < MIN_OVERRIDE_LENGTH) {
+      setError(`Override reason must be at least ${MIN_OVERRIDE_LENGTH} characters.`)
+      return
+    }
+    setError('')
+    await trySave(buildPayload(overrideReason.trim()))
+  }
+
+  function handleCancelOverride() {
+    setBlocked(null)
+    setOverrideReason('')
+    setError('')
+  }
+
   return (
-    <details className="add-form">
+    <details className="add-form" open={!!blocked || undefined}>
       <summary>+ Add medication</summary>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="drug_name">Drug name</label>
-        <input id="drug_name" value={form.drug_name} onChange={(e) => update('drug_name', e.target.value)} required />
-        <label htmlFor="brand_name">Brand name</label>
-        <input id="brand_name" value={form.brand_name} onChange={(e) => update('brand_name', e.target.value)} />
-        <label htmlFor="dose">Dose</label>
-        <input id="dose" value={form.dose} onChange={(e) => update('dose', e.target.value)} required />
-        <label htmlFor="frequency">Frequency</label>
-        <input id="frequency" value={form.frequency} onChange={(e) => update('frequency', e.target.value)} required />
-        <label htmlFor="started_at">Started</label>
-        <input
-          id="started_at"
-          type="date"
-          value={form.started_at}
-          onChange={(e) => update('started_at', e.target.value)}
-          required
+      <SafetyWarningBanner warnings={warnings} />
+      {blocked ? (
+        <SafetyBlockedBanner
+          detail={blocked}
+          drugName={form.drug_name}
+          overrideReason={overrideReason}
+          onChangeReason={setOverrideReason}
+          onConfirm={handleConfirmOverride}
+          onCancel={handleCancelOverride}
+          error={error}
         />
-        <button type="submit">Add medication</button>
-        {error && <p className="form-error">{error}</p>}
-      </form>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="drug_name">Drug name</label>
+          <input
+            id="drug_name"
+            value={form.drug_name}
+            onChange={(e) => update('drug_name', e.target.value)}
+            required
+          />
+          <label htmlFor="brand_name">Brand name</label>
+          <input id="brand_name" value={form.brand_name} onChange={(e) => update('brand_name', e.target.value)} />
+          <label htmlFor="dose">Dose</label>
+          <input id="dose" value={form.dose} onChange={(e) => update('dose', e.target.value)} required />
+          <label htmlFor="frequency">Frequency</label>
+          <input
+            id="frequency"
+            value={form.frequency}
+            onChange={(e) => update('frequency', e.target.value)}
+            required
+          />
+          <label htmlFor="started_at">Started</label>
+          <input
+            id="started_at"
+            type="date"
+            value={form.started_at}
+            onChange={(e) => update('started_at', e.target.value)}
+            required
+          />
+          <button type="submit">Add medication</button>
+          {error && <p className="form-error">{error}</p>}
+        </form>
+      )}
     </details>
   )
 }
 
 function RecordForm({ patientId, onAdded }) {
-  const [form, setForm] = useState({ record_type: 'visit', title: '', details: '' })
+  const emptyForm = { record_type: 'visit', title: '', details: '', drug_name: '' }
+  const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [blocked, setBlocked] = useState(null)
+  const [overrideReason, setOverrideReason] = useState('')
+  const [warnings, setWarnings] = useState([])
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  function buildPayload(reason) {
+    const payload = { record_type: form.record_type, title: form.title, details: form.details }
+    if (form.record_type === 'prescription') payload.drug_name = form.drug_name
+    if (reason) payload.override_reason = reason
+    return payload
+  }
+
+  function handleSuccess(result) {
+    setForm(emptyForm)
+    setBlocked(null)
+    setOverrideReason('')
     setError('')
+    setWarnings(result && result.warnings ? result.warnings : [])
+    onAdded()
+  }
+
+  async function trySave(payload) {
     try {
-      await api.post(`/patients/${patientId}/records`, form)
-      setForm({ record_type: 'visit', title: '', details: '' })
-      onAdded()
+      const result = await api.post(`/patients/${patientId}/records`, payload)
+      handleSuccess(result)
     } catch (err) {
-      setError(typeof err.detail === 'string' ? err.detail : 'Please check the form.')
+      if (err instanceof ApiError && err.status === 409) {
+        setBlocked(err.detail)
+      } else {
+        setError(typeof err.detail === 'string' ? err.detail : 'Please check the form.')
+      }
     }
   }
 
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setWarnings([])
+    await trySave(buildPayload())
+  }
+
+  async function handleConfirmOverride() {
+    if (overrideReason.trim().length < MIN_OVERRIDE_LENGTH) {
+      setError(`Override reason must be at least ${MIN_OVERRIDE_LENGTH} characters.`)
+      return
+    }
+    setError('')
+    await trySave(buildPayload(overrideReason.trim()))
+  }
+
+  function handleCancelOverride() {
+    setBlocked(null)
+    setOverrideReason('')
+    setError('')
+  }
+
   return (
-    <details className="add-form">
+    <details className="add-form" open={!!blocked || undefined}>
       <summary>+ Add record</summary>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="record_type">Type</label>
-        <select id="record_type" value={form.record_type} onChange={(e) => update('record_type', e.target.value)}>
-          {RECORD_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t.replace('_', ' ')}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="title">Title</label>
-        <input id="title" value={form.title} onChange={(e) => update('title', e.target.value)} required />
-        <label htmlFor="details">Details</label>
-        <textarea id="details" value={form.details} onChange={(e) => update('details', e.target.value)} required />
-        <button type="submit">Add record</button>
-        {error && <p className="form-error">{error}</p>}
-      </form>
+      <SafetyWarningBanner warnings={warnings} />
+      {blocked ? (
+        <SafetyBlockedBanner
+          detail={blocked}
+          drugName={form.drug_name}
+          overrideReason={overrideReason}
+          onChangeReason={setOverrideReason}
+          onConfirm={handleConfirmOverride}
+          onCancel={handleCancelOverride}
+          error={error}
+        />
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="record_type">Type</label>
+          <select id="record_type" value={form.record_type} onChange={(e) => update('record_type', e.target.value)}>
+            {RECORD_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t.replace('_', ' ')}
+              </option>
+            ))}
+          </select>
+          {form.record_type === 'prescription' && (
+            <>
+              <label htmlFor="record_drug_name">Drug name</label>
+              <input
+                id="record_drug_name"
+                value={form.drug_name}
+                onChange={(e) => update('drug_name', e.target.value)}
+                required
+              />
+            </>
+          )}
+          <label htmlFor="title">Title</label>
+          <input id="title" value={form.title} onChange={(e) => update('title', e.target.value)} required />
+          <label htmlFor="details">Details</label>
+          <textarea id="details" value={form.details} onChange={(e) => update('details', e.target.value)} required />
+          <button type="submit">Add record</button>
+          {error && <p className="form-error">{error}</p>}
+        </form>
+      )}
     </details>
   )
 }

@@ -36,3 +36,7 @@ class Record(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # Only set (and only meaningful) for record_type == PRESCRIPTION, so the drug
+    # interaction/allergy safety checks have something to check against.
+    drug_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

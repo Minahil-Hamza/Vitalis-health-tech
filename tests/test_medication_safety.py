@@ -167,3 +167,38 @@ def test_minor_interaction_saves_immediately_with_warning(client: TestClient, se
     medication = db_session.query(Medication).filter(Medication.drug_name == "ibuprofen").first()
     assert medication is not None
     assert medication.override_reason is None
+
+
+def test_override_reason_too_short_is_rejected(client: TestClient, seeded_admin, db_session):
+    facility, admin, password = seeded_admin
+    _login(client, admin.email, password)
+    patient_id = _create_patient(client)
+
+    client.post(
+        f"/patients/{patient_id}/medications",
+        json={"drug_name": "warfarin", "dose": "5mg", "frequency": "once daily", "started_at": "2024-01-01"},
+    )
+    db_session.add(
+        DrugInteraction(
+            drug_a="aspirin",
+            drug_b="warfarin",
+            severity=InteractionSeverity.MAJOR,
+            description="Increased bleeding risk.",
+            recommendation="Avoid combination.",
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/patients/{patient_id}/medications",
+        json={
+            "drug_name": "aspirin",
+            "dose": "75mg",
+            "frequency": "once daily",
+            "started_at": "2024-06-01",
+            "override_reason": "too short",
+        },
+    )
+
+    assert response.status_code == 422
+    assert db_session.query(Medication).filter(Medication.drug_name == "aspirin").count() == 0

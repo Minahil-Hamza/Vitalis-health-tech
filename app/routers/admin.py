@@ -1,6 +1,4 @@
 """Admin-only endpoints: staff management, facility counts, and drug interaction CSV import."""
-import csv
-import io
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
@@ -9,19 +7,17 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.drug_interaction import DrugInteraction, InteractionSeverity
 from app.models.patient import Patient
 from app.models.record import Record
 from app.models.user import Role, User
 from app.schemas.admin import AdminDashboardOut
 from app.schemas.user import UserCreate, UserOut
 from app.services.content_negotiation import wants_json
+from app.services.drug_interactions_import import import_interactions_from_csv_text
 from app.services.security import hash_password, require_role
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-
-REQUIRED_COLUMNS = {"drug_a", "drug_b", "severity", "description", "recommendation"}
 
 
 @router.get("/admin", response_class=HTMLResponse)
@@ -120,26 +116,4 @@ async def import_interactions(
     table is hand-authored.
     """
     raw = await file.read()
-    reader = csv.DictReader(io.StringIO(raw.decode("utf-8")))
-
-    if reader.fieldnames is None or not REQUIRED_COLUMNS.issubset(set(reader.fieldnames)):
-        return {"imported": 0, "errors": [f"CSV must have columns: {', '.join(sorted(REQUIRED_COLUMNS))}"]}
-
-    imported = 0
-    errors = []
-    for line_number, row in enumerate(reader, start=2):
-        try:
-            interaction = DrugInteraction(
-                drug_a=row["drug_a"].strip().lower(),
-                drug_b=row["drug_b"].strip().lower(),
-                severity=InteractionSeverity(row["severity"].strip().lower()),
-                description=row["description"].strip(),
-                recommendation=row["recommendation"].strip(),
-            )
-            db.add(interaction)
-            imported += 1
-        except (ValueError, KeyError, AttributeError) as exc:
-            errors.append(f"Row {line_number}: {exc}")
-
-    db.commit()
-    return {"imported": imported, "errors": errors}
+    return import_interactions_from_csv_text(raw.decode("utf-8"), db)

@@ -214,6 +214,12 @@ prescribed_by_user_id, facility_id
 Record — id, patient_id, facility_id, author_user_id, record_type
 enum [visit, prescription, lab_report, admission, discharge],
 title, details (text), created_at
+(AMENDMENT 2026-08-19: + drug_name (nullable, required only when
+record_type is "prescription") and override_reason (nullable) — the
+Phase 4 safety engine originally only ran against Medication creation;
+the founder asked for the same checks on prescription-type Records
+too, which needed somewhere to hold the drug being prescribed and any
+override given. Not part of the original v1.0 data model.)
 
 DrugInteraction (reference table) — id, drug_a (generic, lowercase),
 drug_b, severity enum [minor, moderate, major], description,
@@ -574,3 +580,33 @@ FIRST PROMPT TO START (founder: paste this after the spec)
 rules. Then begin PHASE 0: list the files you will create, wait for my
 go-ahead, then build the skeleton."
 
+Begin PHASE 4 (Clinical Safety Engine) from VITALIS_SPEC.md. Present 
+your plan first, then build after my go-ahead.
+
+Requirements beyond the spec:
+
+1. I have placed drug_interactions_seed.csv in the project root. 
+   Build the CSV import (admin-only) exactly matching its columns: 
+   drug_a, drug_b, severity, description, recommendation. Also add 
+   a seed command that loads this CSV automatically.
+2. Matching must be case-insensitive and order-insensitive 
+   (warfarin+aspirin == Aspirin+Warfarin).
+3. When staff adds a medication or prescription record, run BOTH 
+   checks before saving:
+   - Interaction check against the patient's ACTIVE medications
+   - Allergy check against recorded allergy substances 
+     (case-insensitive substring match)
+4. MAJOR interaction or ANY allergy match → blocking warning page: 
+   red banner, drug names, description, recommendation. Saving is 
+   only possible after typing an override reason (min 10 chars). 
+   The override reason is stored on the record and the audit log 
+   entry is flagged as an override.
+5. MODERATE/MINOR → yellow non-blocking warning shown on the same 
+   form; user can proceed normally.
+6. The warning UI must match our design system (style.css): red 
+   #C4331B for blocking, amber for non-blocking, card layout.
+7. Write pytest tests for: blocked major interaction, allergy block, 
+   override flow, moderate warning pass-through, and clean save.
+
+When done, give me a manual test script: which patient to use, which 
+drugs to add, and exactly what I should see at each step.

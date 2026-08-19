@@ -2,7 +2,9 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from app.schemas.safety import validate_override_reason_length
 
 
 class MedicationCreate(BaseModel):
@@ -14,6 +16,12 @@ class MedicationCreate(BaseModel):
     frequency: str
     started_at: date
     override_reason: Optional[str] = None
+
+    @field_validator("override_reason")
+    @classmethod
+    def check_override_reason(cls, value: Optional[str]) -> Optional[str]:
+        """If an override reason is given, it must meet the minimum length."""
+        return validate_override_reason_length(value)
 
 
 class MedicationOut(BaseModel):

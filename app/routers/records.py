@@ -7,12 +7,13 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.audit_log import AuditAction
 from app.models.facility import Facility
-from app.models.record import Record
+from app.models.record import Record, RecordType
 from app.models.user import User
 from app.schemas.patient import RecordDetailOut
 from app.schemas.record import RecordCreate, RecordOut
 from app.services.audit import log_action
 from app.services.content_negotiation import wants_json
+from app.services.interactions import evaluate_drug_safety
 from app.services.patient_access import CONSENT_DENIED_DETAIL, get_patient_or_404, has_consent_access
 from app.services.security import get_current_user
 
@@ -27,10 +28,19 @@ def create_record(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Add a clinical record for a patient and audit it as created_record."""
+    """Add a clinical record for a patient and audit it as created_record.
+
+    Prescription-type records run the same drug-interaction/allergy safety checks as
+    adding a medication, since prescribing a drug is prescribing a drug either way.
+    """
     patient = get_patient_or_404(db, patient_id)
     if not has_consent_access(patient, user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=CONSENT_DENIED_DETAIL)
+
+    override_reason = None
+    warnings: list[str] = []
+    if payload.record_type == RecordType.PRESCRIPTION:
+        override_reason, warnings = evaluate_drug_safety(payload.drug_name, patient, db, payload.override_reason)
 
     record = Record(
         patient_id=patient.id,
@@ -39,15 +49,28 @@ def create_record(
         record_type=payload.record_type,
         title=payload.title,
         details=payload.details,
+        drug_name=payload.drug_name,
+        override_reason=override_reason,
     )
     db.add(record)
     db.commit()
     db.refresh(record)
 
     log_action(
-        db, action=AuditAction.CREATED_RECORD, user_id=user.id, facility_id=user.facility_id, patient_id=patient.id
+        db,
+        action=AuditAction.CREATED_RECORD,
+        user_id=user.id,
+        facility_id=user.facility_id,
+        patient_id=patient.id,
+        override_reason=record.override_reason,
     )
-    return record
+    return RecordOut(
+        id=record.id,
+        record_type=record.record_type,
+        title=record.title,
+        drug_name=record.drug_name,
+        warnings=warnings,
+    )
 
 
 @router.get("/patients/{patient_id}/timeline", response_class=HTMLResponse)
@@ -82,6 +105,7 @@ def patient_timeline(
                 record_type=record.record_type,
                 title=record.title,
                 details=record.details,
+                drug_name=record.drug_name,
                 created_at=record.created_at,
                 facility_name=facility_name,
                 author_name=author_name,

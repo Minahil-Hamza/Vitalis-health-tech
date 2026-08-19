@@ -1,5 +1,16 @@
 """Schema for the blocking 409 response returned when a medication needs an override reason."""
+from typing import Optional
+
 from pydantic import BaseModel
+
+MIN_OVERRIDE_REASON_LENGTH = 10
+
+
+def validate_override_reason_length(value: Optional[str]) -> Optional[str]:
+    """Shared validator body: if an override reason is given at all, it must be substantive."""
+    if value is not None and len(value.strip()) < MIN_OVERRIDE_REASON_LENGTH:
+        raise ValueError(f"Override reason must be at least {MIN_OVERRIDE_REASON_LENGTH} characters")
+    return value
 
 
 class InteractionWarning(BaseModel):

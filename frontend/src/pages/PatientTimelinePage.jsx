@@ -40,6 +40,7 @@ export function PatientTimelinePage() {
               <div>
                 <span className="badge">{r.record_type.replace('_', ' ')}</span>{' '}
                 <strong>{r.title}</strong>
+                {r.drug_name && <span className="badge badge-role">{r.drug_name}</span>}
                 <span className="entry-meta">
                   {r.facility_name} &middot; {r.author_name} &middot; {r.created_at}
                 </span>

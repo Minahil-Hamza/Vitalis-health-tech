@@ -52,6 +52,7 @@ class RecordDetailOut(BaseModel):
     record_type: RecordType
     title: str
     details: str
+    drug_name: Optional[str] = None
     created_at: datetime
     facility_name: str
     author_name: str
