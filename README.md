@@ -72,6 +72,19 @@ npm test    # Vitest + React Testing Library
 npm run build
 ```
 
+**Bundle size / phone performance**: `npm run build` code-splits by route, so the 3D
+patient view's Three.js dependency (the bulk of the bundle) only downloads when someone
+actually opens a patient page — login/dashboard/admin stay small (~75KB gzipped each).
+`Body3D` also checks for WebGL support before attempting to render, falling back to the
+plain-text conditions list on a device/browser without it, and is wrapped in an error
+boundary so a runtime WebGL failure degrades gracefully instead of blanking the page.
+The Canvas itself caps its device pixel ratio (`dpr={[1, 2]}`) and only re-renders on
+interaction (`frameloop="demand"`) rather than a continuous 60fps loop, since the scene
+is mostly static. None of this was measured on a real low-end phone (no device/browser
+tooling available while building it) — it's the standard set of react-three-fiber
+mitigations for exactly this risk, not a substitute for testing on an actual device
+before this becomes the default app.
+
 ## Project structure
 
 ```
@@ -119,3 +132,34 @@ boring deployment:
 No Docker is required for v1. If you later want containers, the app is stateless aside
 from the database, so a straightforward `Dockerfile` running `uvicorn` would work without
 restructuring anything.
+
+### Deploying the React frontend (once it's ready to go live)
+
+The frontend isn't wired up as the default app yet — see "React frontend" above and the
+roadmap in `PROGRESS.md`. When it is, deployment doesn't need Node.js running as a
+service: `npm run build` produces static files in `frontend/dist/` that Caddy/Nginx can
+serve directly, with API routes reverse-proxied to the FastAPI backend — the same
+Accept-header-based split the Vite dev proxy does locally, just handled by the production
+reverse proxy instead. Example Caddyfile:
+
+```
+vitalis.example.com {
+    root * /srv/vitalis/frontend/dist
+    file_server
+
+    @api path /auth/* /logout /patients/* /admin/*
+    reverse_proxy @api 127.0.0.1:8000
+
+    try_files {path} /index.html
+}
+```
+
+`try_files ... /index.html` is what makes client-side routes like `/patients/:id` work on
+a hard refresh — same purpose as Vite's dev-time SPA fallback. Rebuild and redeploy
+`frontend/dist/` as part of your normal deploy step, same as running migrations.
+
+**Cutting over** — making the React app the one real users land on, and retiring the
+Jinja2 templates — is a deliberate decision for you to make once you've confirmed it
+covers everything you need on a real device, not something to flip silently as part of
+routine development. Until then, both apps keep working side by side against the same
+backend and database.

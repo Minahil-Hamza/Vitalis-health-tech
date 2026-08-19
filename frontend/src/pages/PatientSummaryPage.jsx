@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, ApiError } from '../api'
 import { Body3D } from '../components/Body3D'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
 const RECORD_TYPES = ['visit', 'prescription', 'lab_report', 'admission', 'discharge']
 const SEVERITIES = ['mild', 'moderate', 'severe']
@@ -77,7 +78,9 @@ export function PatientSummaryPage() {
       <AllergyForm patientId={patientId} onAdded={load} />
 
       <h2>Chronic conditions</h2>
-      <Body3D conditions={patient.conditions} />
+      <ErrorBoundary fallback={<p className="body3d-empty">The 3D view couldn't be displayed — see the list below.</p>}>
+        <Body3D conditions={patient.conditions} />
+      </ErrorBoundary>
       {patient.conditions.length > 0 ? (
         <ul>
           {patient.conditions.map((c) => (

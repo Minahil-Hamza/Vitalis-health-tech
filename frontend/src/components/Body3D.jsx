@@ -1,6 +1,7 @@
 import { Suspense, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import { hasWebGL } from '../hasWebGL'
 
 // Approximate marker positions on the stylized figure below. This is a simplified,
 // non-mirrored convention (screen-left = left_arm/left_leg) for a stylized aid, not an
@@ -96,9 +97,17 @@ export function Body3D({ conditions }) {
     return <p className="body3d-empty">No localized conditions to show on the body view.</p>
   }
 
+  if (!hasWebGL()) {
+    return (
+      <p className="body3d-empty">
+        The 3D view isn't supported on this device or browser — see the conditions list below.
+      </p>
+    )
+  }
+
   return (
     <div className="body3d-canvas">
-      <Canvas camera={{ position: [0, 1.2, 2.4], fov: 45 }}>
+      <Canvas camera={{ position: [0, 1.2, 2.4], fov: 45 }} dpr={[1, 2]} frameloop="demand">
         <ambientLight intensity={0.7} />
         <directionalLight position={[2, 3, 2]} intensity={0.8} />
         <Suspense fallback={null}>

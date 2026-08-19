@@ -172,10 +172,42 @@ parallel with the current app (nothing breaks until cutover) via this sub-roadma
     page (not login/dashboard) is Phase 10's job, not fixed here.
   - Old Jinja2 app and all Phase 1–8 backend behavior unaffected; `pytest` 74/74,
     frontend Vitest 10/10, both dev-mode and production builds verified
-- **Phase 10 — Polish, mobile, cutover**: not started. Phone performance testing (a WebGL
-  scene is a real risk on low-end phones — see the bundle-size note above), README/deploy
-  updates for the Node build step,
-  retire the Jinja2 templates only once parity is confirmed.
+- **Phase 10 — Polish, mobile, cutover — mostly done; cutover itself deliberately not done**
+  - **Route-based code splitting** (`App.jsx`, `React.lazy` + `Suspense`): the Three.js
+    bundle now only loads when a patient page is actually visited. Measured, not just
+    claimed — production build before this change: one 1.16MB bundle for every page.
+    After: login/dashboard/admin dropped to ~1–3KB each (~75KB shared base), with the
+    heavy ~916KB (244KB gzipped) chunk isolated to the patient page alone.
+  - **WebGL detection** (`hasWebGL.js`): `Body3D` checks support before attempting to
+    render and falls back to the existing plain-text conditions list if it's missing,
+    instead of a blank canvas or console errors.
+  - **Error boundary** (`ErrorBoundary.jsx`): wraps `Body3D` on the patient page so a
+    runtime Three.js failure degrades to a fallback message instead of blanking the
+    whole page.
+  - **Canvas perf settings**: `dpr={[1, 2]}` caps device pixel ratio (avoids full native
+    DPR — 3x+ on some phones — driving up fill-rate cost), `frameloop="demand"` stops
+    the continuous 60fps render loop for this mostly-static scene (drei's `OrbitControls`
+    still triggers re-renders on interaction automatically under `demand` mode). Canvas
+    height also drops on narrow viewports via a media query.
+  - **Honest limit on verification**: none of the above was profiled on a real low-end
+    phone — no device/browser tooling is available in this environment (same constraint
+    noted since Phase 6). These are the standard, well-documented react-three-fiber
+    mitigations for exactly this risk, applied deliberately rather than skipped, but they
+    are not a substitute for testing on an actual device before any cutover decision.
+  - **README**: documented the production deployment path for the frontend (`npm run
+    build` → static files served by Caddy/Nginx, API routes reverse-proxied to FastAPI —
+    the production equivalent of the Vite dev proxy from Phase 8) with an example
+    Caddyfile.
+  - **Cutover (making React the default app, retiring the Jinja2 templates) was
+    deliberately NOT done.** That's a product decision about the live app, not a routine
+    implementation step, and depends on verifying real-device behavior this environment
+    can't do — it needs your explicit go-ahead once you've tried it on an actual phone.
+    Both apps currently run side by side against the same backend/database; nothing
+    about today's work forces that decision either way.
+  - 13 frontend tests (3 new: WebGL-unavailable fallback, error-boundary catch/no-catch),
+    `pytest` untouched at 74/74 (no backend changes this phase), both dev-mode and
+    production builds verified against the real backend + demo data through the full
+    stack (login → search → patient page → all new JS modules serving without error)
 
 ## Blockers
 - None. Note: port 8000 on this machine is occupied by Docker Desktop/WSL port-forwarding (unrelated to this project) — local dev server testing used port 8001 instead.

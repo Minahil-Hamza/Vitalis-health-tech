@@ -121,3 +121,17 @@ th, td {
   color: #6B7280;
   font-size: 0.9rem;
 }
+
+.route-loading {
+  color: #6B7280;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+/* Smaller canvas on phones — less fill-rate cost, and the model doesn't need the
+   extra vertical space on a narrow, tall viewport. */
+@media (max-width: 480px) {
+  .body3d-canvas {
+    height: 240px;
+  }
+}
