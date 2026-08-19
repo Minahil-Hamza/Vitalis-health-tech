@@ -106,6 +106,16 @@ Python 3.12 · FastAPI · SQLAlchemy 2.x · SQLite (dev) / PostgreSQL
 (prod) · Alembic · Jinja2 + vanilla JS + single CSS file · pytest.
 No React/Vue/Node build tools in v1.
 
+AMENDMENT (2026-08-19): the founder approved a parallel React frontend
+initiative — Phases 7-10, tracked in PROGRESS.md, not part of the
+VITALIS_SPEC.md phase list — to build a 3D patient visualization.
+This adds Node.js, npm, Vite, React, react-router-dom,
+react-three-fiber, Three.js, @react-three/drei, Vitest, and React
+Testing Library as approved dependencies for that initiative only.
+The Jinja2 + vanilla JS app remains the default, spec-compliant app
+for Phases 0-6 and is not being replaced until a deliberate cutover
+decision — see PROGRESS.md for the current status of both apps.
+
 Style
 
 

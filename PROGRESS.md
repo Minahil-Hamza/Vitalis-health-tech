@@ -209,5 +209,34 @@ parallel with the current app (nothing breaks until cutover) via this sub-roadma
     production builds verified against the real backend + demo data through the full
     stack (login → search → patient page → all new JS modules serving without error)
 
+## Spec compliance audit (2026-08-19)
+
+Founder asked for a full comparison of the codebase against `Claude.md` and `Vitalis.md`.
+Findings and outcomes:
+
+1. **Fixed — spec documents were stale.** Both files still said "no React/Vue/Node build
+   tools in v1," contradicting the Phase 7-10 React work. Added dated AMENDMENT notes to
+   both files' tech-stack sections documenting the approved exception, rather than
+   silently rewriting the original v1.0 text.
+2. **Fixed — `Condition.body_region` had no spec basis.** Added a dated AMENDMENT to
+   `Vitalis.md`'s data model section (section 3) documenting the field and why it exists.
+3. **Skipped for now, per founder's decision** — `POST /patients/{id}/conditions` (chronic
+   conditions were meant to be read-only in the original 6-phase spec; this endpoint was
+   built during Phase 9 to make the 3D view interactive, without ever being an explicitly
+   approved phase requirement). Founder chose to keep the endpoint as-is and defer this
+   question rather than remove it — it's what body_region (item 2) exists to serve.
+4. **Not actioned** — `AuditLog.override_reason` / `Medication.override_reason` aren't in
+   section 3's literal field list, but are directly required by Phase 4's own text
+   ("stored in the record and flagged in the audit log"); flagged as a different category
+   (implementation detail of an approved requirement) from items 2-3, not asked to be
+   fixed, left as-is.
+5. **Not actioned** — root `.gitignore` has no `*.log` entry (dev logs like `uvicorn.log`
+   have been manually deleted before each commit rather than reliably excluded); noted,
+   not yet fixed.
+
+Everything else checked — all other model fields match `Vitalis.md` exactly, AuditLog has
+no update/delete path anywhere, no CNIC/phone is ever logged in `app/`, secrets/`.env`
+handling and CORS same-origin are intact — came back compliant.
+
 ## Blockers
 - None. Note: port 8000 on this machine is occupied by Docker Desktop/WSL port-forwarding (unrelated to this project) — local dev server testing used port 8001 instead.

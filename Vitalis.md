@@ -140,6 +140,15 @@ Auth: JWT tokens (python-jose), passwords hashed with bcrypt
 Frontend: Server-rendered Jinja2 templates + vanilla JS + a single
 CSS file. NO React/Vue in v1 (solo founder must be able to maintain it)
 
+AMENDMENT (2026-08-19): the founder approved a parallel React
+frontend initiative (Phases 7-10, tracked in PROGRESS.md, outside
+this document's phase list below) to build a 3D patient
+visualization: Node.js, npm, Vite, React, react-router-dom,
+react-three-fiber, Three.js, @react-three/drei, Vitest, and React
+Testing Library are approved for that initiative only. The Jinja2 +
+vanilla JS app above remains the default, spec-compliant app for
+Phases 0-6 and stays in place until a deliberate cutover decision.
+
 
 
 Migrations: Alembic
@@ -192,6 +201,11 @@ Allergy — id, patient_id (FK), substance, severity enum
 [mild, moderate, severe], noted_by_user_id, created_at
 
 Condition (chronic) — id, patient_id, name, diagnosed_date, notes
+(AMENDMENT 2026-08-19: + body_region, a nullable enum [head, chest,
+abdomen, pelvis, left_arm, right_arm, left_leg, right_leg, back,
+general], added to support the Phase 9 3D patient visualization —
+not part of the original v1.0 data model; left null for systemic
+conditions like diabetes rather than forced onto a fake location)
 
 Medication (current meds) — id, patient_id, drug_name (generic),
 brand_name, dose, frequency, started_at, stopped_at (nullable),
