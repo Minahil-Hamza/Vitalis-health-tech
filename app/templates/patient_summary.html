@@ -45,6 +45,32 @@
   <p>No chronic conditions recorded.</p>
   {% endif %}
 
+  <form id="condition-form">
+    <h3>Add condition</h3>
+    <label for="condition_name">Name</label>
+    <input type="text" id="condition_name" name="name" required>
+    <label for="diagnosed_date">Diagnosed</label>
+    <input type="date" id="diagnosed_date" name="diagnosed_date">
+    <label for="body_region">Body region</label>
+    <select id="body_region" name="body_region">
+      <option value="">Not localized / systemic</option>
+      <option value="head">Head</option>
+      <option value="chest">Chest</option>
+      <option value="abdomen">Abdomen</option>
+      <option value="pelvis">Pelvis</option>
+      <option value="left_arm">Left arm</option>
+      <option value="right_arm">Right arm</option>
+      <option value="left_leg">Left leg</option>
+      <option value="right_leg">Right leg</option>
+      <option value="back">Back</option>
+      <option value="general">General</option>
+    </select>
+    <label for="condition_notes">Notes</label>
+    <textarea id="condition_notes" name="notes"></textarea>
+    <button type="submit">Add condition</button>
+    <p class="form-error" id="condition-error" hidden></p>
+  </form>
+
   <h2>Current medications</h2>
   {% if active_medications %}
   <ul>
@@ -207,6 +233,13 @@
       errorEl.hidden = false;
     }
   });
+
+  bindForm("condition-form", "condition-error", `/patients/${patientId}/conditions`, () => ({
+    name: document.getElementById("condition_name").value,
+    diagnosed_date: document.getElementById("diagnosed_date").value || null,
+    body_region: document.getElementById("body_region").value || null,
+    notes: document.getElementById("condition_notes").value || null,
+  }));
 
   bindForm("record-form", "record-error", `/patients/${patientId}/records`, () => ({
     record_type: document.getElementById("record_type").value,

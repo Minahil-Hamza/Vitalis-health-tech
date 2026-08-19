@@ -4,7 +4,7 @@ from app.models.user import Role, User
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.patient import Gender, Patient
 from app.models.allergy import Allergy, Severity
-from app.models.condition import Condition
+from app.models.condition import BodyRegion, Condition
 from app.models.medication import Medication
 from app.models.record import Record, RecordType
 from app.models.drug_interaction import DrugInteraction, InteractionSeverity
@@ -20,6 +20,7 @@ __all__ = [
     "Allergy",
     "Severity",
     "Condition",
+    "BodyRegion",
     "Medication",
     "Record",
     "RecordType",

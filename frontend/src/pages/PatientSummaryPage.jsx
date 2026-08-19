@@ -1,9 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, ApiError } from '../api'
+import { Body3D } from '../components/Body3D'
 
 const RECORD_TYPES = ['visit', 'prescription', 'lab_report', 'admission', 'discharge']
 const SEVERITIES = ['mild', 'moderate', 'severe']
+const BODY_REGIONS = [
+  ['', 'Not localized / systemic'],
+  ['head', 'Head'],
+  ['chest', 'Chest'],
+  ['abdomen', 'Abdomen'],
+  ['pelvis', 'Pelvis'],
+  ['left_arm', 'Left arm'],
+  ['right_arm', 'Right arm'],
+  ['left_leg', 'Left leg'],
+  ['right_leg', 'Right leg'],
+  ['back', 'Back'],
+  ['general', 'General'],
+]
 
 export function PatientSummaryPage() {
   const { patientId } = useParams()
@@ -63,18 +77,22 @@ export function PatientSummaryPage() {
       <AllergyForm patientId={patientId} onAdded={load} />
 
       <h2>Chronic conditions</h2>
+      <Body3D conditions={patient.conditions} />
       {patient.conditions.length > 0 ? (
         <ul>
           {patient.conditions.map((c) => (
             <li key={c.id}>
               {c.name}
               {c.diagnosed_date ? ` — diagnosed ${c.diagnosed_date}` : ''}
+              {c.body_region ? ` (${c.body_region.replace('_', ' ')})` : ''}
             </li>
           ))}
         </ul>
       ) : (
         <p>No chronic conditions recorded.</p>
       )}
+
+      <ConditionForm patientId={patientId} onAdded={load} />
 
       <h2>Current medications</h2>
       {patient.active_medications.length > 0 ? (
@@ -165,6 +183,59 @@ function AllergyForm({ patientId, onAdded }) {
         {error && <p className="form-error">{error}</p>}
       </form>
     </>
+  )
+}
+
+function ConditionForm({ patientId, onAdded }) {
+  const [form, setForm] = useState({ name: '', diagnosed_date: '', body_region: '', notes: '' })
+  const [error, setError] = useState('')
+
+  function update(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    try {
+      await api.post(`/patients/${patientId}/conditions`, {
+        name: form.name,
+        diagnosed_date: form.diagnosed_date || null,
+        body_region: form.body_region || null,
+        notes: form.notes || null,
+      })
+      setForm({ name: '', diagnosed_date: '', body_region: '', notes: '' })
+      onAdded()
+    } catch (err) {
+      setError(typeof err.detail === 'string' ? err.detail : 'Please check the form.')
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h3>Add condition</h3>
+      <label htmlFor="condition_name">Name</label>
+      <input id="condition_name" value={form.name} onChange={(e) => update('name', e.target.value)} required />
+      <label htmlFor="diagnosed_date">Diagnosed</label>
+      <input
+        id="diagnosed_date"
+        type="date"
+        value={form.diagnosed_date}
+        onChange={(e) => update('diagnosed_date', e.target.value)}
+      />
+      <label htmlFor="body_region">Body region</label>
+      <select id="body_region" value={form.body_region} onChange={(e) => update('body_region', e.target.value)}>
+        {BODY_REGIONS.map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <label htmlFor="condition_notes">Notes</label>
+      <textarea id="condition_notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} />
+      <button type="submit">Add condition</button>
+      {error && <p className="form-error">{error}</p>}
+    </form>
   )
 }
 

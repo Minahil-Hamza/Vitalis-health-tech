@@ -8,6 +8,7 @@ from pydantic import BaseModel, field_validator
 from app.models.patient import Gender
 from app.models.record import RecordType
 from app.schemas.allergy import AllergyOut
+from app.schemas.condition import ConditionOut
 from app.schemas.medication import MedicationDetailOut
 
 CNIC_PATTERN = re.compile(r"^\d{5}-\d{7}-\d$")
@@ -40,17 +41,6 @@ class PatientOut(BaseModel):
     id: str
     cnic: str
     full_name: str
-
-    model_config = {"from_attributes": True}
-
-
-class ConditionOut(BaseModel):
-    """A chronic condition, as returned in the patient detail JSON."""
-
-    id: str
-    name: str
-    diagnosed_date: Optional[date] = None
-    notes: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

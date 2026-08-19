@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.rate_limit import limiter
-from app.routers import admin, allergies, auth, medications, pages, patients, records
+from app.routers import admin, allergies, auth, conditions, medications, pages, patients, records
 
 app = FastAPI(title="Vitalis")
 app.state.limiter = limiter
@@ -20,6 +20,7 @@ app.include_router(patients.router)
 app.include_router(records.router)
 app.include_router(medications.router)
 app.include_router(allergies.router)
+app.include_router(conditions.router)
 app.include_router(admin.router)
 
 error_templates = Jinja2Templates(directory="app/templates")

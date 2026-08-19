@@ -126,12 +126,55 @@ parallel with the current app (nothing breaks until cutover) via this sub-roadma
     FastAPI, got JSON) and once without (Vite served its own `index.html`), confirming
     the dual-purpose routing actually works end to end, not just in theory
   - Old Jinja2 app fully untouched; `pytest` still 70/70
-- **Phase 9 — 3D patient visualization**: not started. react-three-fiber + Three.js; body
-  model sourcing and the condition-to-body-region mapping (leaning toward a manual
-  "body region" field on Condition rather than guessing from free text) still need
-  deciding.
+- **Phase 9 — 3D patient visualization — DONE**
+  - Resolved the two open decisions from the Phase 8 notes: **body model** is a simple
+    procedural low-poly figure built from Three.js primitives (sphere head, cylinder
+    torso/pelvis/limbs) — no external asset, no licensing question, trivial for one
+    person to tweak. **Condition-to-region mapping** is a manual `body_region` field
+    (enum: head/chest/abdomen/pelvis/left_arm/right_arm/left_leg/right_leg/back/general)
+    picked when adding a condition, rather than guessing from free text — systemic
+    conditions (e.g. diabetes) can be left unset rather than forced onto a fake location.
+  - **New backend capability, not just plumbing**: conditions had no creation endpoint
+    at all before this (only ever inserted directly in tests/seed data) — added
+    `POST /patients/{id}/conditions` (`app/routers/conditions.py`), `body_region` column
+    + migration `d6e08c880ceb`, `ConditionCreate`/`ConditionOut` moved into their own
+    `app/schemas/condition.py` (previously `ConditionOut` lived inline in
+    `schemas/patient.py`, inconsistent with every other domain having its own file).
+    Same consent gate as allergies/medications/records; no audit action (none exists in
+    the enum for this, same reasoning as allergy-add).
+  - Added a matching "Add condition" form to the **old Jinja2 page too** (not just
+    React) so both apps stay at parity — cheap, and avoids the old app looking
+    incomplete next to the new capability.
+  - `frontend/src/components/Body3D.jsx`: react-three-fiber `<Canvas>`, clickable
+    markers positioned per `body_region`, click-to-toggle an HTML tooltip (via drei)
+    showing name/diagnosed date/notes. Conditions with no `body_region` are left off the
+    3D view and still shown in the existing plain-text conditions list — a WebGL-free
+    fallback that costs nothing and hedges the phone-performance risk Phase 10 is meant
+    to address properly.
+  - `tests/test_conditions.py` (4 backend tests): create with/without body_region,
+    appears correctly in the JSON patient detail, consent gate blocks cross-facility add.
+    `Body3D.test.jsx` (2 tests): the empty-state path (no localized conditions) is real
+    since it returns before touching `<Canvas>`; the populated path mocks
+    `@react-three/fiber`/`@react-three/drei` since jsdom has no WebGL context to test
+    against for real — full rendering/interaction genuinely needs a browser.
+  - `seed_demo.py` updated with conditions across all three demo patients (including one
+    deliberately left as `body_region=None` to demonstrate the systemic case)
+  - Manually verified end-to-end with both dev servers: seeded conditions appear
+    correctly in the JSON patient detail, added a new condition via `curl` and confirmed
+    it rendered correctly on the **old** Jinja2 page (parity check), then re-verified the
+    same patient's condition data (including `body_region`) flows correctly through the
+    Vite dev proxy that Phase 8 built — the exact data `Body3D` consumes. (Caught and
+    correctly diagnosed a `curl` cookie-jar artifact along the way — `127.0.0.1` and
+    `localhost` are different hosts to curl's cookie store, not an app bug.)
+  - Known tradeoff for Phase 10: the production JS bundle is ~1.16MB (320KB gzipped)
+    now that Three.js is in it — fine on a dev machine, a real risk on the low-end
+    phones this app targets. Code-splitting so the 3D bundle only loads on the patient
+    page (not login/dashboard) is Phase 10's job, not fixed here.
+  - Old Jinja2 app and all Phase 1–8 backend behavior unaffected; `pytest` 74/74,
+    frontend Vitest 10/10, both dev-mode and production builds verified
 - **Phase 10 — Polish, mobile, cutover**: not started. Phone performance testing (a WebGL
-  scene is a real risk on low-end phones), README/deploy updates for the Node build step,
+  scene is a real risk on low-end phones — see the bundle-size note above), README/deploy
+  updates for the Node build step,
   retire the Jinja2 templates only once parity is confirmed.
 
 ## Blockers

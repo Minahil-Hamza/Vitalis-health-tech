@@ -38,7 +38,8 @@ Open http://127.0.0.1:8000/login and sign in with any of the demo accounts print
 
 Three demo patients are seeded, including one (Usman Tariq, CNIC `35201-9988776-3`)
 already on warfarin — try adding aspirin for him from either facility's login to see the
-drug-interaction safety check block the save.
+drug-interaction safety check block the save. All three have a few chronic conditions
+seeded with a body region, for the React frontend's 3D visualization (see below).
 
 ### Running tests
 
@@ -50,8 +51,9 @@ pytest
 
 A React rewrite lives in `frontend/`, being built in parallel with the app above per the
 roadmap in `PROGRESS.md` — nothing here replaces the Jinja2 app until it reaches full
-parity and a deliberate cutover. Currently covers 2D login/dashboard/patient/admin pages
-(no 3D visualization yet).
+parity and a deliberate cutover. Covers login/dashboard/patient/admin pages, plus a 3D
+patient view (react-three-fiber) on the patient summary page showing chronic conditions
+as clickable markers on a stylized body — click a marker to see its details.
 
 Requires Node.js (v20+) and the backend running per the steps above.
 

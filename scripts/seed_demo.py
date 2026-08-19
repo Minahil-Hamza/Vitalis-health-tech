@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import SessionLocal
 from app.models.allergy import Allergy, Severity
+from app.models.condition import BodyRegion, Condition
 from app.models.drug_interaction import DrugInteraction, InteractionSeverity
 from app.models.facility import Facility
 from app.models.medication import Medication
@@ -87,13 +88,21 @@ def seed():
         ]
         db.add_all(patients)
         db.flush()
-        ahmed, _fatima, usman = patients
+        ahmed, fatima, usman = patients
 
         db.add(Allergy(patient_id=ahmed.id, substance="Penicillin", severity=Severity.SEVERE, noted_by_user_id=admin_a.id))
         db.add(Medication(
             patient_id=usman.id, drug_name="warfarin", dose="5mg", frequency="once daily",
             started_at=date(2024, 1, 10), prescribed_by_user_id=admin_a.id, facility_id=clinic_a.id,
         ))
+
+        # A few conditions for the 3D patient visualization (Phase 9) — mostly localized,
+        # with one systemic one to show that path isn't forced onto a fake body location.
+        db.add(Condition(patient_id=ahmed.id, name="Asthma", diagnosed_date=date(2015, 6, 1), body_region=BodyRegion.CHEST))
+        db.add(Condition(patient_id=fatima.id, name="Migraine", diagnosed_date=date(2019, 2, 10), body_region=BodyRegion.HEAD))
+        db.add(Condition(patient_id=fatima.id, name="Type 2 Diabetes", diagnosed_date=date(2021, 9, 1), body_region=None))
+        db.add(Condition(patient_id=usman.id, name="Atrial Fibrillation", diagnosed_date=date(2023, 11, 20), body_region=BodyRegion.CHEST))
+        db.add(Condition(patient_id=usman.id, name="Osteoarthritis (left knee)", diagnosed_date=date(2020, 4, 5), body_region=BodyRegion.LEFT_LEG))
 
         for drug_a, drug_b, severity, description, recommendation in INTERACTIONS:
             db.add(DrugInteraction(
@@ -112,9 +121,10 @@ def seed():
             facility_name = "City Care Clinic" if u.facility_id == clinic_a.id else "Al-Shifa Clinic"
             print(f"  {u.email} - {u.role.value} at {facility_name}")
         print("\nDemo patients:")
-        print("  Ahmed Raza (CNIC 35202-1234567-1) - severe penicillin allergy")
-        print("  Fatima Sheikh (CNIC 42101-7654321-2)")
-        print("  Usman Tariq (CNIC 35201-9988776-3) - on warfarin; try adding aspirin for him")
+        print("  Ahmed Raza (CNIC 35202-1234567-1) - severe penicillin allergy, asthma (chest)")
+        print("  Fatima Sheikh (CNIC 42101-7654321-2) - migraine (head), type 2 diabetes (systemic)")
+        print("  Usman Tariq (CNIC 35201-9988776-3) - on warfarin (try adding aspirin), atrial")
+        print("    fibrillation (chest), osteoarthritis (left knee)")
         print(f"\n{len(INTERACTIONS)} drug interactions loaded into the reference table.")
     finally:
         db.close()
